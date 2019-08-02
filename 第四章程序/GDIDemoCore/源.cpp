@@ -9,7 +9,8 @@
 // 描述：包含程序依赖的头文件
 //---------------------------------------------------------------------------
 #include <windows.h>
-
+#include <time.h>
+#pragma comment(lib,"winmm.lib")
 //---------------------------------------------------------------------------
 // 描述：定义一些辅助宏
 //---------------------------------------------------------------------------
@@ -21,6 +22,12 @@
 // 描述：全局变量的声明
 //---------------------------------------------------------------------------
 HDC g_hdc = NULL;//全局设备环境句柄
+HPEN g_hPen[7] = { 0 };//定义画笔句柄的数组
+HBRUSH g_hBrush[7] = { 0 };//定义画刷句柄的数组
+int g_iPenStyle[7] = { PS_SOLID ,PS_DASH,PS_DOT ,PS_DASHDOT ,PS_DASHDOTDOT,
+PS_NULL ,PS_INSIDEFRAME };//定义并初始化画笔样式的数组
+int g_iBrushStyle[6] = { HS_BDIAGONAL ,HS_CROSS ,HS_DIAGCROSS,HS_FDIAGONAL,
+HS_HORIZONTAL,HS_VERTICAL};//定义并初始化画刷样式的数组
 
 //---------------------------------------------------------------------------
 // 描述：全局函数声明
@@ -71,6 +78,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		MessageBox(hWnd, L"资源初始化失败", L"消息窗口", 0);
 		return false;
 	}
+	
+	//窗口初始化后，播放音乐
+	PlaySound(L"Dia Frampton - Walk Away.flac", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
     //消息循环过程
 	MSG msg = { 0 };//定义并初始化msg
@@ -121,9 +131,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam)
 //---------------------------------------------------------------------------
 BOOL Game_Init(HWND hWnd)
 {
-	g_hdc = GetDC(hWnd);
-	Game_Paint(hWnd);
-	ReleaseDC(hWnd, g_hdc);
+	g_hdc = GetDC(hWnd);//获取设备环境句柄
+	srand((unsigned)time(NULL));//初始化随机种子
+	//随机初始化画笔和画刷的颜色值
+	for (int i = 0; i <=6; i++)
+	{
+		g_hPen[i] = CreatePen(g_iPenStyle[i], 1, RGB(rand() % 256, 
+			rand() % 256, rand() % 256));
+		if (i == 6)
+			g_hBrush[i] = CreateSolidBrush(RGB(rand() % 256,
+				rand() % 256, rand() % 256));
+		else
+			g_hBrush[i] = CreateHatchBrush(g_iBrushStyle[i], RGB(rand() % 256,
+				rand() % 256, rand() % 256));
+	}
+	Game_Paint(hWnd);//执行绘制操作
+	ReleaseDC(hWnd, g_hdc);//释放设备环境句柄
 	return true;
 }
 
@@ -132,7 +155,27 @@ BOOL Game_Init(HWND hWnd)
 //---------------------------------------------------------------------------
 VOID Game_Paint(HWND hWnd)
 {
-	
+	int y = 0;//定义一个y坐标值
+
+	//for循环用七种不同的画笔绘制线条
+	for (int i = 0; i <= 6; i++)
+	{
+		y = (i + 1) * 70;
+		SelectObject(g_hdc, g_hPen[i]);//选择画笔
+		MoveToEx(g_hdc, 30, y, NULL);//光标移动到点(30，y)处
+		LineTo(g_hdc, 100, y);//从点（30，y）向点（100，y）画线
+	}
+	//定义两个x坐标值
+	int x1 = 120;
+	int x2 = 190;
+	//用七种不同的画刷填充矩形
+	for (int i = 0; i <=6; i++)
+	{
+		SelectObject(g_hdc, g_hBrush[i]);
+		Rectangle(g_hdc, x1, 70, x2, y);
+		x1 += 90;
+		x2 += 90;
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -140,5 +183,10 @@ VOID Game_Paint(HWND hWnd)
 //---------------------------------------------------------------------------
 BOOL Game_CleanUp(HWND hWnd)
 {
-	return 0;
+	for (int i = 0; i <=6; i++)
+	{
+		DeleteObject(g_hPen[i]);
+		DeleteObject(g_hBrush[i]);
+	}
+	return true;
 }
