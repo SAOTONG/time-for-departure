@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-// 程序名称：GameWnd
+// 程序名称：D3DdemoCore
 // 2019年7月 Create by 侯金成
 // 描述：游戏程序框架
 //---------------------------------------------------------------------------
@@ -8,34 +8,34 @@
 //---------------------------------------------------------------------------
 // 描述：包含程序依赖的头文件
 //---------------------------------------------------------------------------
-#include <windows.h>
-#include <tchar.h>
+#include <d3d9.h>
+
+//---------------------------------------------------------------------------
+// 描述：添加程序所依赖的库文件
+//---------------------------------------------------------------------------
 #pragma comment(lib,"winmm.lib")
-#pragma  comment(lib,"Msimg32.lib")		//添加使用TransparentBlt函数所需的库文件
+#pragma comment(lib,"d3d9.lib")
+
 //---------------------------------------------------------------------------
 // 描述：定义一些辅助宏
 //---------------------------------------------------------------------------
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE L"游戏程序框架"
+#define SAFE_RELEASE(p) {if(p){(p)->Release();(p) = NULL;}}//定义一个安全释放宏，便于后面COM接口指针的释放
 
 //---------------------------------------------------------------------------
 // 描述：全局变量的声明
 //---------------------------------------------------------------------------
-HDC g_hdc = NULL, g_mdc = NULL, g_bufdc = NULL;//全局设备环境句柄
-HBITMAP g_hMen[4]{NULL};//声明一个存放角色位图的数组
-HBITMAP g_hBackGround = NULL;//定义位图句柄，用来存储背景图
-DWORD g_tPre = 0, g_tNow = 0;//声明两个变量记录时间，前者是上一次绘图时间，后者是本次准备绘图的当前时间
-int g_iNum = 0, g_iX = 0, g_iY = 0;//记录图号、角色图像的横纵坐标
-int g_iDirection = 0;//记录人物角色的方向，0上，1下，2左，3右。
-
+LPDIRECT3DDEVICE9  g_pd3dDevice = NULL;//Direct3D设备对象
 //---------------------------------------------------------------------------
 // 描述：全局函数声明
 //---------------------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-BOOL Game_Init(HWND hWnd);//资源初始化
-VOID Game_Paint(HWND hWnd);//进行绘图
-BOOL Game_CleanUp(HWND hWnd);//资源清理
+HRESULT Direct3D_Init(HWND hWnd);//Direct3D初始化
+HRESULT Objects_Init(HWND hWnd);//需要绘制的物体资源初始化
+VOID Direct3D_Render(HWND hWnd);//Direct3D渲染代码的书写
+VOID Direct3D_CleanUp(HWND hWnd);//清理COM资源以及其他资源
 
 //---------------------------------------------------------------------------
 // 描述：主函数定义
@@ -67,20 +67,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	HWND hWnd = CreateWindow(L"GameWindow", WINDOW_TITLE, WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, hInstance, NULL);
 
+	//资源初始化，若初始失败，则返回false
+	if (S_OK == Direct3D_Init(hWnd))
+		MessageBox(hWnd, L"Direct3d初始化完成~", L"侯金成的消息窗口", 0);
+	else
+		MessageBox(hWnd, L"Direct3d初始化失败~", L"侯金成的消息窗口", 0);
+
 	//窗口的移动、显示与更新
 	MoveWindow(hWnd, 250, 80, WINDOW_WIDTH, WINDOW_HEIGHT, true);//调整窗口显示位置
 	ShowWindow(hWnd, nCmdShow);//显示窗口
 	UpdateWindow(hWnd);//更新窗口
 
-					   //资源初始化，若初始失败，则返回false
-	if (!Game_Init(hWnd))
-	{
-		MessageBox(hWnd, L"资源初始化失败", L"消息窗口", 0);
-		return false;
-	}
-
 	//窗口初始化后，播放音乐
 	//PlaySound(L"Dia Frampton - Walk Away.flac", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+	MessageBox(hWnd, L"嘿嘿，终于到了这一天", L"Direct3D", 0);
 
 	//消息循环过程
 	MSG msg = { 0 };//定义并初始化msg
@@ -93,11 +93,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		}
 		else
 		{
-			g_tNow = GetTickCount();
-			if (g_tNow - g_tPre >= 80)//上次绘图时间与当前绘图时间间隔80毫秒的话就绘图
-			{
-				Game_Paint(hWnd);
-			}
+			Direct3D_Render(hWnd);
 		}
 	}
 
@@ -111,40 +107,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 //---------------------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
-	
 	switch (nMsg)
 	{
+	case WM_PAINT:
+		Direct3D_Render(hWnd);
+		ValidateRect(hWnd, NULL);
+		break;
 	case WM_KEYDOWN:
-		switch (wParam)
-		{
-		case VK_UP:
-			g_iY -= 10;
-			g_iDirection = 0;
-			if (g_iY < 0)
-				g_iY = 0;
-			break;
-		case VK_DOWN:
-			g_iY += 10;
-			g_iDirection = 1;
-			if (g_iY > WINDOW_HEIGHT - 135)
-				g_iY = WINDOW_HEIGHT - 135;
-			break;
-		case VK_LEFT:
-			g_iX -= 10;
-			g_iDirection = 2;
-			if (g_iX < 0)
-				g_iX = 0;
-			break;
-		case VK_RIGHT:
-			g_iX += 10;
-			g_iDirection = 3;
-			if (g_iX > WINDOW_WIDTH - 60)
-				g_iX = WINDOW_WIDTH - 60;
-			break;
-		}
+		if (wParam == VK_ESCAPE)
+			DestroyWindow(hWnd);
 		break;
 	case WM_DESTROY:
-		Game_CleanUp(hWnd);//调用自定义的资源清理函数，在窗口退出前对资源进行清理
+		Direct3D_CleanUp(hWnd);//调用自定义的资源清理函数，在窗口退出前对资源进行清理
 		PostQuitMessage(0);
 		break;
 	default:
@@ -154,63 +128,73 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam)
 }
 
 //---------------------------------------------------------------------------
-// 描述：资源初始化函数Game_Init，进行一些简单的初始化
+// 描述：Direct3D_Init函数，负责Direct3D初始化
 //---------------------------------------------------------------------------
-BOOL Game_Init(HWND hWnd)
+HRESULT Direct3D_Init(HWND hWnd)
 {
-	HBITMAP bmp;
-	g_hdc = GetDC(hWnd);//获取设备环境句柄
-	g_mdc = CreateCompatibleDC(g_hdc);//建立兼容设备环境的内存DC
-	g_bufdc = CreateCompatibleDC(g_hdc);//建立兼容设备环境的缓存DC
-	bmp = CreateCompatibleBitmap(g_hdc, WINDOW_WIDTH, WINDOW_HEIGHT); //建一个和窗口兼容的空的位图对象
-	SelectObject(g_mdc, bmp);//将空位图对象放到mdc中
-	g_hBackGround = (HBITMAP)LoadImage(NULL, L"bg.bmp", IMAGE_BITMAP,
-		WINDOW_WIDTH, WINDOW_HEIGHT, LR_LOADFROMFILE);//加载背景图像
-	g_hMen[0] = (HBITMAP)LoadImage(NULL, L"go1.bmp", IMAGE_BITMAP,
-		480, 216, LR_LOADFROMFILE);//加载人物图像
-	g_hMen[1] = (HBITMAP)LoadImage(NULL, L"go2.bmp", IMAGE_BITMAP,
-		480, 216, LR_LOADFROMFILE);//加载人物图像
-	g_hMen[2] = (HBITMAP)LoadImage(NULL, L"go3.bmp", IMAGE_BITMAP,
-		480, 216, LR_LOADFROMFILE);//加载人物图像
-	g_hMen[3] = (HBITMAP)LoadImage(NULL, L"go4.bmp", IMAGE_BITMAP,
-		480, 216, LR_LOADFROMFILE);//加载人物图像
-	Game_Paint(hWnd);//执行绘制操作
+	//创建Direct3D接口对象
+	LPDIRECT3D9 pD3D = NULL;
+	if (NULL == (pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
+		return E_FAIL;
 
-	return true;
+	//获取硬件设备信息
+	D3DCAPS9 caps;
+	int vp = 0;
+	if (FAILED(pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps)))
+		return E_FAIL;
+	if (caps.DevCaps&D3DDEVCAPS_HWTRANSFORMANDLIGHT)
+		vp = D3DCREATE_HARDWARE_VERTEXPROCESSING;//支持硬件顶点运算
+	else
+		vp = D3DCREATE_SOFTWARE_VERTEXPROCESSING;//不支持硬件顶点运算
+
+	//填充D3DPRESENT_PARAMETERS结构体
+	D3DPRESENT_PARAMETERS d3dpp;
+	ZeroMemory(&d3dpp, sizeof(d3dpp));
+	d3dpp.BackBufferWidth = WINDOW_WIDTH;
+	d3dpp.BackBufferHeight = WINDOW_HEIGHT;
+	d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
+	d3dpp.BackBufferCount = 1;
+	d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
+	d3dpp.MultiSampleQuality = 0;
+	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+	d3dpp.hDeviceWindow = hWnd;
+	d3dpp.Windowed = true;
+	d3dpp.EnableAutoDepthStencil = true;
+	d3dpp.AutoDepthStencilFormat = D3DFMT_D24S8;
+	d3dpp.Flags = 0;
+	d3dpp.FullScreen_RefreshRateInHz = 0;
+	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+
+	//创建Direct3D设备接口
+	if (FAILED(pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, vp, &d3dpp, &g_pd3dDevice)))
+		return E_FAIL;
+	SAFE_RELEASE(pD3D);
+
+	if (!(S_OK == Objects_Init(hWnd)))return E_FAIL;//调用Objects_Init，对需要绘制的物体资源初始化
+	return S_OK;
 }
 
 //---------------------------------------------------------------------------
-// 描述：绘制函数Game_Paint，进行绘制操作
+// 描述：Objects_Init函数，对需要绘制的物体资源初始化
 //---------------------------------------------------------------------------
-VOID Game_Paint(HWND hWnd)
+HRESULT Objects_Init(HWND hWnd)
 {
-	
-	if (g_iNum == 8)
-	{
-		g_iNum = 0;
-	}
-	//在内存DC中贴背景图
-	SelectObject(g_bufdc, g_hBackGround);
-	BitBlt(g_mdc, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, g_bufdc, 0, 0, SRCCOPY);
-	//在内存DC中进行透明处理
-	SelectObject(g_bufdc, g_hMen[g_iDirection]);
-	BitBlt(g_mdc, g_iX, g_iY, 60, 108, g_bufdc, g_iNum*60, 108, SRCAND);
-	BitBlt(g_mdc, g_iX, g_iY, 60, 108, g_bufdc, g_iNum*60, 0, SRCPAINT);
-	//将图像显示到窗口
-	BitBlt(g_hdc, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, g_mdc, 0, 0, SRCCOPY);
-	g_tPre = GetTickCount();
-	g_iNum++;
+	return S_OK;
 }
 
 //---------------------------------------------------------------------------
-// 描述：资源清理Game_CleanUp，进行退出前资源的清理工作
+// 描述：Direct3D_Render函数，使用Direct3D渲染
 //---------------------------------------------------------------------------
-BOOL Game_CleanUp(HWND hWnd)
+VOID Direct3D_Render(HWND hWnd)
 {
-	DeleteObject(g_hBackGround);
-	DeleteObject(g_hMen);
-	DeleteDC(g_mdc);
-	DeleteDC(g_bufdc);
-	ReleaseDC(hWnd, g_hdc);//释放设备环境句柄
-	return true;
+	return VOID();
 }
+
+//---------------------------------------------------------------------------
+// 描述：函数Direct3D_CleanUp，负责资源清理，在程序退出之前进行资源清理
+//---------------------------------------------------------------------------
+VOID Direct3D_CleanUp(HWND hWnd)
+{
+	return VOID();
+}
+
