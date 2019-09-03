@@ -256,7 +256,7 @@ VOID Game_Paint(HWND hWnd)
 			g_iXmen = g_iX;
 	}
 	else   //若当前贴图X坐标大于鼠标光标的X坐标
-	{
+	{ 
 		g_iXmen -= 40;
 		if (g_iXmen < g_iX)
 			g_iXmen = g_iX;
