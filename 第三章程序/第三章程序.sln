@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.421
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameWnd", "GameWnd\GameWnd.vcxproj", "{4F780054-B76E-46D5-A078-ADE15E8FE17D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TextOut", "TextOut\TextOut.vcxproj", "{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{4F780054-B76E-46D5-A078-ADE15E8FE17D}.Release|x64.Build.0 = Release|x64
 		{4F780054-B76E-46D5-A078-ADE15E8FE17D}.Release|x86.ActiveCfg = Release|Win32
 		{4F780054-B76E-46D5-A078-ADE15E8FE17D}.Release|x86.Build.0 = Release|Win32
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Debug|x64.ActiveCfg = Debug|x64
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Debug|x64.Build.0 = Debug|x64
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Debug|x86.ActiveCfg = Debug|Win32
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Debug|x86.Build.0 = Debug|Win32
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Release|x64.ActiveCfg = Release|x64
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Release|x64.Build.0 = Release|x64
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Release|x86.ActiveCfg = Release|Win32
+		{AD2DBF00-C60A-4782-ACF7-68D724E94CAC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
