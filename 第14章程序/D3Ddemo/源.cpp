@@ -39,9 +39,9 @@ LPD3DXMESH      g_sphere = NULL;//球面体对象
 LPD3DXMESH      g_torus = NULL;//圆环体对象
 D3DXMATRIX      g_WorldMatrix[4], R;//定义全局的世界矩阵
 
-//-----------------------------------【全局函数声明部分】-------------------------------------
-//	描述：全局函数声明，防止“未声明的标识”系列错误
-//------------------------------------------------------------------------------------------------
+									//-----------------------------------【全局函数声明部分】-------------------------------------
+									//	描述：全局函数声明，防止“未声明的标识”系列错误
+									//------------------------------------------------------------------------------------------------
 LRESULT CALLBACK	WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);//窗口过程函数
 HRESULT					Direct3D_Init(HWND hwnd);		 //在这个函数中进行Direct3D的初始化
 HRESULT					Objects_Init(HWND hwnd); 		//在这个函数中进行要绘制的物体的资源初始化
@@ -49,10 +49,10 @@ VOID							Direct3D_Render(HWND hwnd); 	//在这个函数中进行Direct3D渲染代码的书写
 VOID							Direct3D_CleanUp();				//在这个函数中清理COM资源以及其他资源
 float							Get_FPS();
 VOID                            Matrix_Set();       //四大变换的封装函数
-
-													//-----------------------------------【WinMain( )函数】--------------------------------------
-													//	描述：Windows应用程序的入口函数，我们的程序从这里开始
-													//------------------------------------------------------------------------------------------------
+VOID Light_Set(LPDIRECT3DDEVICE9 pd3dDevice, UINT nType);
+//-----------------------------------【WinMain( )函数】--------------------------------------
+//	描述：Windows应用程序的入口函数，我们的程序从这里开始
+//------------------------------------------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	//【1】窗口创建四步曲之一：开始设计一个完整的窗口类
@@ -194,8 +194,6 @@ HRESULT Direct3D_Init(HWND hwnd)
 	SAFE_RELEASE(pD3D) //LPDIRECT3D9接口对象的使命完成，我们将其释放掉
 
 		if (!(S_OK == Objects_Init(hwnd))) return E_FAIL;     //调用一次Objects_Init，进行渲染资源的初始化
-	g_pd3dDevice->SetRenderState(D3DRS_LIGHTING, FALSE);
-	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
 	return S_OK;
 }
 
@@ -211,24 +209,83 @@ HRESULT Objects_Init(HWND hwnd)
 		OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, 0, _T("微软雅黑"), &g_pFont)))
 		return E_FAIL;
 	srand(timeGetTime());      //用系统时间初始化随机种子 
-	
-	//物体的创建
+
+							   //物体的创建
 	if (FAILED(D3DXCreateBox(g_pd3dDevice, 2, 2, 2, &g_cube, NULL)))//创建立方体
 		return false;
 	if (FAILED(D3DXCreateTeapot(g_pd3dDevice, &g_teapot, NULL)))//创建茶壶
 		return false;
 	if (FAILED(D3DXCreateSphere(g_pd3dDevice, 1.5f, 25, 25, &g_sphere, NULL)))//创建球面体
 		return false;
-	if (FAILED(D3DXCreateTorus(g_pd3dDevice, 0.5f, 1.2f, 25, 25, &g_torus,NULL)))//创建圆环体	
-	    return false;
-	
+	if (FAILED(D3DXCreateTorus(g_pd3dDevice, 0.5f, 1.2f, 25, 25, &g_torus, NULL)))//创建圆环体	
+		return false;
+
+	//设置材质
+	D3DMATERIAL9 ml;
+	::ZeroMemory(&ml, sizeof(ml));
+	ml.Ambient = D3DXCOLOR(0.5f, 0.5f, 0.7f, 1.0f);
+	ml.Diffuse = D3DXCOLOR(0.6f, 0.6f, 0.6f, 1.0f);
+	ml.Emissive = D3DXCOLOR(0.3f, 0.0f, 0.1f, 1.0f);
+	ml.Specular = D3DXCOLOR(0.3f, 0.3f, 0.3f, 0.3f);
+	g_pd3dDevice->SetMaterial(&ml);
+
 	//设置渲染状态
-	g_pd3dDevice->SetRenderState(D3DRS_LIGHTING, FALSE);//关闭光照
+	Light_Set(g_pd3dDevice, 1);
+	g_pd3dDevice->SetRenderState(D3DRS_LIGHTING, true);//开启光照
+	g_pd3dDevice->SetRenderState(D3DRS_NORMALIZENORMALS, true);
+	g_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, true);
 	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);//开启背面消隐
-	g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);//设置线框填充模式
 	return S_OK;
 }
 
+//-----------------------------------【Object_Init( )函数】--------------------------------------
+//	描述：渲染资源初始化函数，在此函数中进行要被渲染的物体的资源的初始化
+//--------------------------------------------------------------------------------------------------
+VOID Light_Set(LPDIRECT3DDEVICE9 pd3dDevice, UINT nType)
+{
+	//定义一个光照类型并初始化
+	static D3DLIGHT9 light;
+	::ZeroMemory(&light, sizeof(light));
+	switch (nType)
+	{
+	case 1:
+		light.Type = D3DLIGHT_POINT;
+		light.Ambient = D3DXCOLOR(0.6f, 0.6f, 0.6f, 1.0f);
+		light.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+		light.Specular = D3DXCOLOR(0.3f, 0.3f, 0.3f, 1.0f);
+		light.Position = D3DXVECTOR3(0.0f, 200.0f, 0.0f);
+		light.Attenuation0 = 1.0f;
+		light.Attenuation1 = 0.0f;
+		light.Attenuation2 = 0.0f;
+		light.Range = 300.0f;
+		break;
+	case 2:
+		light.Type = D3DLIGHT_DIRECTIONAL;
+		light.Ambient = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);
+		light.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+		light.Specular = D3DXCOLOR(0.3f, 0.3f, 0.3f, 1.0f);
+		light.Direction = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
+		break;
+	case 3:
+		light.Type = D3DLIGHT_SPOT;
+		light.Ambient = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);
+		light.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+		light.Specular = D3DXCOLOR(0.3f, 0.3f, 0.3f, 1.0f);
+		light.Direction = D3DXVECTOR3(-1.0f, -1.0f, -1.0f);
+		light.Position = D3DXVECTOR3(100.0f, 100.0f, 100.0f);
+		light.Attenuation0 = 1.0f;
+		light.Attenuation1 = 0.0f;
+		light.Attenuation2 = 0.0f;
+		light.Range = 300.0f;
+		light.Falloff = 0.1f;
+		light.Phi = D3DX_PI / 3.0f;
+		light.Theta = D3DX_PI / 6.0f;
+		break;
+	}
+	pd3dDevice->SetLight(0, &light);
+	pd3dDevice->LightEnable(0, true);
+	pd3dDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(0, 0, 0));
+}
 
 //-----------------------------------【Direct3D_Render( )函数】-------------------------------
 //	描述：使用Direct3D进行渲染
@@ -248,9 +305,9 @@ void Direct3D_Render(HWND hwnd)
 	// 【Direct3D渲染五步曲之二】：开始绘制
 	//--------------------------------------------------------------------------------------
 	g_pd3dDevice->BeginScene();                     // 开始绘制
-	//--------------------------------------------------------------------------------------
-	// 【Direct3D渲染五步曲之三】：正式绘制
-	//--------------------------------------------------------------------------------------
+													//--------------------------------------------------------------------------------------
+													// 【Direct3D渲染五步曲之三】：正式绘制
+													//--------------------------------------------------------------------------------------
 	Matrix_Set();
 	// 获取键盘消息并给予设置相应的填充模式
 	if (::GetAsyncKeyState(0x31) & 0x8000f)         // 若数字键1被按下，进行线框填充
@@ -258,11 +315,17 @@ void Direct3D_Render(HWND hwnd)
 	if (::GetAsyncKeyState(0x32) & 0x8000f)         // 若数字键2被按下，进行实体填充
 		g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 
+	if (::GetAsyncKeyState(0x51) & 0x8000f)
+		Light_Set(g_pd3dDevice, 1);
+	if (::GetAsyncKeyState(0x57) & 0x8000f)
+		Light_Set(g_pd3dDevice, 2);
+	if (::GetAsyncKeyState(0x45) & 0x8000f)
+		Light_Set(g_pd3dDevice, 3);
 	//------------------------------------------------------------
 	// 【顶点缓存使用四步曲之四】：绘制图形
 	//------------------------------------------------------------
 	D3DXMatrixRotationY(&R, ::timeGetTime() / 1440.0f);//设置公转矩阵
-	//进行立方体的绘制
+													   //进行立方体的绘制
 	D3DXMatrixTranslation(&g_WorldMatrix[0], 3.0f, -3.0f, 0.0f);
 	g_WorldMatrix[0] = g_WorldMatrix[0] * R;
 	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_WorldMatrix[0]);
@@ -329,7 +392,7 @@ VOID Matrix_Set()
 	//--------------------------------------------------------------------------------------
 	//【四大变换之一】：世界变换矩阵的设置
 	//--------------------------------------------------------------------------------------
-	
+
 
 	//--------------------------------------------------------------------------------------
 	//【四大变换之一】：取景变换矩阵的设置
@@ -368,11 +431,11 @@ void Direct3D_CleanUp()
 {
 	//释放COM接口对象
 	SAFE_RELEASE(g_pFont)
-	SAFE_RELEASE(g_pd3dDevice)
+		SAFE_RELEASE(g_pd3dDevice)
 		SAFE_RELEASE(g_cube)
 		SAFE_RELEASE(g_sphere)
 		SAFE_RELEASE(g_teapot)
 		SAFE_RELEASE(g_torus)
-		
+
 }
 
