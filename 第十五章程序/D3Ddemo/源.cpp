@@ -46,24 +46,24 @@ LPD3DXFONT         g_pTextInfor = NULL;//2D绘制信息
 
 float											g_FPS = 0.0f;       //一个浮点型的变量，代表帧速率
 wchar_t										g_strFPS[50];    //包含帧速率的字符数组
-wchar_t            g_strAdapterName[60] = {0};//显卡名称字符数组
+wchar_t            g_strAdapterName[60] = { 0 };//显卡名称字符数组
 LPDIRECTINPUT8     g_pDirectInput = NULL;
 LPDIRECTINPUTDEVICE8   g_pMouseDevice = NULL;
 DIMOUSESTATE     g_diMouseState = { 0 };
 LPDIRECTINPUTDEVICE8   g_pKeyboardDevice = NULL;
 char g_pKeyStateBuffer[256] = { 0 };
 D3DXMATRIX 							g_matWorld;
-LPD3DXMATRIX      g_pMesh = NULL;//网格对象
+LPD3DXMESH      g_pMesh = NULL;//网格对象
 D3DMATERIAL9*     g_pMaterial = NULL;//网格的材质信息
 LPDIRECT3DTEXTURE9* g_pTextures = NULL;//网格的纹理信息
 DWORD               g_dwNumMtrls = NULL;//材质的数量
 
 
-//-----------------------------------【全局函数声明部分】-------------------------------------
-//	描述：全局函数声明，防止“未声明的标识”系列错误
-//------------------------------------------------------------------------------------------------
+										//-----------------------------------【全局函数声明部分】-------------------------------------
+										//	描述：全局函数声明，防止“未声明的标识”系列错误
+										//------------------------------------------------------------------------------------------------
 LRESULT CALLBACK	WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);//窗口过程函数
-HRESULT					Direct3D_Init(HWND hwnd,HINSTANCE hInstance);		 //在这个函数中进行Direct3D的初始化
+HRESULT					Direct3D_Init(HWND hwnd, HINSTANCE hInstance);		 //在这个函数中进行Direct3D的初始化
 HRESULT					Objects_Init(HWND hwnd); 		//在这个函数中进行要绘制的物体的资源初始化
 VOID                            Direct3D_Update(HWND hwnd);      //在这个函数中进行画面更新操作
 VOID							Direct3D_Render(HWND hwnd); 	//在这个函数中进行Direct3D渲染代码的书写
@@ -85,7 +85,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	wndClass.cbClsExtra = 0;								//窗口类的附加内存，取0就可以了
 	wndClass.cbWndExtra = 0;							//窗口的附加内存，依然取0就行了
 	wndClass.hInstance = hInstance;						//指定包含窗口过程的程序的实例句柄。
-	wndClass.hIcon = (HICON)::LoadImage(NULL, L"icon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE);  //本地加载自定义ico图标
+	wndClass.hIcon = (HICON)::LoadImage(NULL, L"icon.ico",
+		IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE);  //本地加载自定义ico图标
 	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);    //指定窗口类的光标句柄。
 	wndClass.hbrBackground = (HBRUSH)GetStockObject(GRAY_BRUSH);  //为hbrBackground成员指定一个白色画刷句柄	
 	wndClass.lpszMenuName = NULL;						//用一个以空终止的字符串，指定菜单资源的名字。
@@ -101,7 +102,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		WINDOW_HEIGHT, NULL, NULL, hInstance, NULL);
 
 	//Direct3D资源的初始化，调用失败用messagebox予以显示
-	if (!(S_OK == Direct3D_Init(hwnd)))
+	if (!(S_OK == Direct3D_Init(hwnd, hInstance)))
 	{
 		MessageBox(hwnd, _T("Direct3D初始化失败~！"), _T("浅墨的消息窗口"), 0); //使用MessageBox函数，创建一个消息窗口 
 	}
@@ -187,9 +188,9 @@ HRESULT Direct3D_Init(HWND hwnd, HINSTANCE hInstance)
 	else
 		vp = D3DCREATE_SOFTWARE_VERTEXPROCESSING; //不支持硬件顶点运算，无奈只好采用软件顶点运算
 
-//--------------------------------------------------------------------------------------
-// 【Direct3D初始化四步曲之三，填内容】：填充D3DPRESENT_PARAMETERS结构体
-//--------------------------------------------------------------------------------------
+												  //--------------------------------------------------------------------------------------
+												  // 【Direct3D初始化四步曲之三，填内容】：填充D3DPRESENT_PARAMETERS结构体
+												  //--------------------------------------------------------------------------------------
 	D3DPRESENT_PARAMETERS d3dpp;
 	ZeroMemory(&d3dpp, sizeof(d3dpp));
 	d3dpp.BackBufferWidth = WINDOW_WIDTH;
@@ -227,7 +228,8 @@ HRESULT Direct3D_Init(HWND hwnd, HINSTANCE hInstance)
 	// 【DirectInput使用五部曲的前三步】：创建设备，设置数据格式，获取控制权，为鼠标设备初始化
 	//--------------------------------------------------------------------------------------
 	//创建DirectInput接口和设备
-	DirectInput8Create(hInstance, DIRECT3D_VERSION, IID_IDirectInput8, (VOID**)&g_pDirectInput, NULL);
+	DirectInput8Create(hInstance, 0x0800, IID_IDirectInput8,
+		(VOID**)&g_pDirectInput, NULL);
 	g_pDirectInput->CreateDevice(GUID_SysKeyboard, &g_pKeyboardDevice, NULL);
 	g_pDirectInput->CreateDevice(GUID_SysMouse, &g_pMouseDevice, NULL);
 
@@ -242,12 +244,14 @@ HRESULT Direct3D_Init(HWND hwnd, HINSTANCE hInstance)
 	// 【DirectInput使用五部曲的前三步】：创建设备，设置数据格式，获取控制权，为键盘设备初始化
 	//--------------------------------------------------------------------------------------
 	//创建DirectInput接口和设备
-	DirectInput8Create(hInstance, DIRECT3D_VERSION, IID_IDirectInput8, (VOID**)&g_pDirectInput, NULL);
+	DirectInput8Create(hInstance, 0x0800,
+		IID_IDirectInput8, (VOID**)&g_pDirectInput, NULL);
 	g_pDirectInput->CreateDevice(GUID_SysKeyboard, &g_pKeyboardDevice, NULL);
 
 	//设置数据格式和协作级别
 	g_pKeyboardDevice->SetDataFormat(&c_dfDIKeyboard);
-	g_pKeyboardDevice->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	g_pKeyboardDevice->SetCooperativeLevel(hwnd,
+		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 
 	//获取设备控制权
 	g_pKeyboardDevice->Acquire();
@@ -279,7 +283,7 @@ HRESULT Objects_Init(HWND hwnd)
 		OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, 0, _T("黑体"), &g_pTextInfor)))
 		return E_FAIL;
 
-    // 从X文件中加载网格数据
+	// 从X文件中加载网格数据
 	LPD3DXBUFFER pAdjBuffer = NULL;
 	LPD3DXBUFFER pMtrlBuffer = NULL;
 	D3DXLoadMeshFromX(L"loli.x", D3DXMESH_MANAGED, g_pd3dDevice,
@@ -295,12 +299,14 @@ HRESULT Objects_Init(HWND hwnd)
 		g_pMaterial[i] = pMtrls[i].MatD3D;
 		g_pMaterial[i].Ambient = g_pMaterial[i].Diffuse;
 		g_pTextures[i] = NULL;
-		D3DXCreateTextureFromFileA(g_pd3dDevice, pMtrls[i].pTextureFilename, &g_pTextures[i]);
+		D3DXCreateTextureFromFileA(g_pd3dDevice,
+			pMtrls[i].pTextureFilename, &g_pTextures[i]);
 	}
 	pAdjBuffer->Release();
 	pMtrlBuffer->Release();
 	//设置渲染状态
-	g_pd3dDevice->SetRenderState(D3DRS_AMBIENT, D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f));//设置环境光
+	g_pd3dDevice->SetRenderState(D3DRS_AMBIENT,
+		D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f));//设置环境光
 	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);   //开启背面消隐
 
 	return S_OK;
@@ -308,7 +314,48 @@ HRESULT Objects_Init(HWND hwnd)
 
 VOID Direct3D_Update(HWND hwnd)
 {
-	return VOID();
+	if (g_pKeyStateBuffer[DIK_1] & 0x0800)
+		g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+	if (g_pKeyStateBuffer[DIK_2] & 0x0800)
+		g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+	::ZeroMemory(&g_diMouseState, sizeof(g_diMouseState));
+	Device_Read(g_pMouseDevice, &g_diMouseState, sizeof(g_diMouseState));
+	::ZeroMemory(&g_pKeyStateBuffer, sizeof(g_pKeyStateBuffer));
+	Device_Read(g_pKeyboardDevice, &g_pKeyStateBuffer, sizeof(g_pKeyStateBuffer));
+
+	static FLOAT fPosX = 0.0f, fPosY = 30.0f, fPosZ = 0.0f;
+	if (g_diMouseState.rgbButtons[0] & 0x80)
+	{
+		fPosX += g_diMouseState.lX *  0.08f;
+		fPosY += g_diMouseState.lY * -0.08f;
+	}
+	fPosZ += g_diMouseState.lZ*0.02f;
+
+	if (g_pKeyStateBuffer[DIK_W] & 0x80)fPosY += 0.05f;
+	if (g_pKeyStateBuffer[DIK_A] & 0x80)fPosX -= 0.05f;
+	if (g_pKeyStateBuffer[DIK_S] & 0x80)fPosY -= 0.05f;
+	if (g_pKeyStateBuffer[DIK_D] & 0x80)fPosX += 0.05f;
+
+	D3DXMatrixTranslation(&g_matWorld, fPosX, fPosY, fPosZ);
+
+	static float fAngleX = 0.15f, fAngleY = -(float)D3DX_PI;
+	if (g_diMouseState.rgbButtons[1] & 0x80)
+	{
+		fAngleX += g_diMouseState.lY * -0.01f;
+		fAngleY += g_diMouseState.lX * -0.01f;
+	}
+
+	if (g_pKeyStateBuffer[DIK_UP] & 0x80)fAngleX += 0.05f;
+	if (g_pKeyStateBuffer[DIK_DOWN] & 0x80)fAngleX -= 0.05f;
+	if (g_pKeyStateBuffer[DIK_LEFT] & 0x80)fAngleY -= 0.05f;
+	if (g_pKeyStateBuffer[DIK_RIGHT] & 0x80)fAngleY += 0.05f;
+
+	D3DXMATRIX Rx, Ry;
+	D3DXMatrixRotationX(&Rx, fAngleX);
+	D3DXMatrixRotationY(&Ry, fAngleY);
+	g_matWorld = Rx * Ry*g_matWorld;
+	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_matWorld);
+	Matrix_Set();//调用封装了四大变换的函数，对Direct3D世界变换，取景变换，投影变换，视口变换进行设置
 }
 
 //-----------------------------------【Matrix_Set( )函数】--------------------------------------
@@ -331,16 +378,17 @@ VOID Matrix_Set()
 	D3DXMatrixLookAtLH(&matView, &vEye, &vAt, &vUp); //计算出取景变换矩阵
 	g_pd3dDevice->SetTransform(D3DTS_VIEW, &matView); //应用取景变换矩阵
 
-//--------------------------------------------------------------------------------------
-//【四大变换之三】：投影变换矩阵的设置
-//--------------------------------------------------------------------------------------
+													  //--------------------------------------------------------------------------------------
+													  //【四大变换之三】：投影变换矩阵的设置
+													  //--------------------------------------------------------------------------------------
 	D3DXMATRIX matProj; //定义一个矩阵
-	D3DXMatrixPerspectiveFovLH(&matProj, D3DX_PI / 4.0f, (float)((double)WINDOW_WIDTH/WINDOW_HEIGHT), 1.0f, 1000.0f); //计算投影变换矩阵
+	D3DXMatrixPerspectiveFovLH(&matProj, D3DX_PI / 4.0f,
+		(float)((double)WINDOW_WIDTH / WINDOW_HEIGHT), 1.0f, 1000.0f); //计算投影变换矩阵
 	g_pd3dDevice->SetTransform(D3DTS_PROJECTION, &matProj);  //设置投影变换矩阵
 
-//--------------------------------------------------------------------------------------
-//【四大变换之四】：视口变换的设置
-//--------------------------------------------------------------------------------------
+															 //--------------------------------------------------------------------------------------
+															 //【四大变换之四】：视口变换的设置
+															 //--------------------------------------------------------------------------------------
 	D3DVIEWPORT9 vp; //实例化一个D3DVIEWPORT9结构体，然后做填空题给各个参数赋值就可以了
 	vp.X = 0;		//表示视口相对于窗口的X坐标
 	vp.Y = 0;		//视口相对对窗口的Y坐标
@@ -354,7 +402,16 @@ VOID Matrix_Set()
 
 BOOL Device_Read(IDirectInputDevice8 * pDIDevice, VOID * pBuffer, long lSize)
 {
-	return 0;
+	HRESULT ht;
+	while (true)
+	{
+		pDIDevice->Poll();//轮询设备
+		pDIDevice->Acquire();//获取设备控制权
+		if (SUCCEEDED(ht = pDIDevice->GetDeviceState(lSize, pBuffer)))break;
+		if (ht != DIERR_INPUTLOST || ht != DIERR_NOTACQUIRED)return false;
+		if (FAILED(pDIDevice->Acquire()))return false;
+	}
+	return true;
 }
 
 //-----------------------------------【Direct3D_Render( )函数】-------------------------------
@@ -365,7 +422,8 @@ void Direct3D_Render(HWND hwnd)
 	//--------------------------------------------------------------------------------------
 	// 【Direct3D渲染五步曲之一】：清屏操作
 	//--------------------------------------------------------------------------------------
-	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+		D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
 
 	//定义一个矩形，用于获取主窗口矩形
 	RECT formatRect;
@@ -375,53 +433,45 @@ void Direct3D_Render(HWND hwnd)
 	//--------------------------------------------------------------------------------------
 	g_pd3dDevice->BeginScene();                     // 开始绘制
 
-	Matrix_Set();//调用封装了四大变换的函数，对Direct3D世界变换，取景变换，投影变换，视口变换进行设置
+													// 绘制网格
+	for (DWORD i = 0; i < g_dwNumMtrls; i++)
+	{
+		g_pd3dDevice->SetMaterial(&g_pMaterial[i]);
+		g_pd3dDevice->SetTexture(0, g_pTextures[i]);
+		g_pMesh->DrawSubset(i);
+	}
 
-				 // 根据键盘按下的情况设置相应的填充模式
-	if (::GetAsyncKeyState(0x31) & 0x8000f)         // 若数字键1被按下，进行实体填充
-		g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-	if (::GetAsyncKeyState(0x32) & 0x8000f)         // 若数字键2被按下，进行线框填充
-		g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+	g_pTextAdapterName->DrawText(NULL, g_strAdapterName, -1,
+		&formatRect, DT_TOP | DT_LEFT, D3DXCOLOR(1.0f, 0.5f, 0.0f, 1.0f));
 
-
-	// 根据键盘按下的情况设置相应的光照类型
-	if (::GetAsyncKeyState(0x51) & 0x8000f)         // 若键盘上的按键Q被按下,光源类型设为点光源
-		Light_Set(g_pd3dDevice, 1);
-	if (::GetAsyncKeyState(0x57) & 0x8000f)         // 若键盘上的按键W被按下，光源类型设为平行光源
-		Light_Set(g_pd3dDevice, 2);
-	if (::GetAsyncKeyState(0x45) & 0x8000f)         // 若键盘上的按键E被按下，光源类型设为聚光灯
-		Light_Set(g_pd3dDevice, 3);
-
-	//--------------------------------------------------------------------------------------
-	// 【Direct3D渲染五步曲之三】：正式绘制，利用顶点缓存绘制图形
-	//--------------------------------------------------------------------------------------
-	//物体的公转
-	D3DXMatrixRotationY(&R, ::timeGetTime() / 1440.0f);
-
-
-	// 进行立方体的绘制
-	D3DXMatrixTranslation(&g_WorldMatrix[0], 3.0f, -3.0f, 0.0f);
-	g_WorldMatrix[0] = g_WorldMatrix[0] * R;
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_WorldMatrix[0]);
-	g_cube->DrawSubset(0);
-
-	//进行茶壶的绘制
-	D3DXMatrixTranslation(&g_WorldMatrix[1], -3.0f, -3.0f, 0.0f);
-	g_WorldMatrix[1] = g_WorldMatrix[1] * R;
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_WorldMatrix[1]);
-	g_teapot->DrawSubset(0);
-
-	// 进行圆环的绘制
-	D3DXMatrixTranslation(&g_WorldMatrix[2], 3.0f, 3.0f, 0.0f);
-	g_WorldMatrix[2] = g_WorldMatrix[2] * R;
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_WorldMatrix[2]);
-	g_torus->DrawSubset(0);
-
-	// 进行球面体的绘制
-	D3DXMatrixTranslation(&g_WorldMatrix[3], -3.0f, 3.0f, 0.0f);
-	g_WorldMatrix[3] = g_WorldMatrix[3] * R;
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_WorldMatrix[3]);
-	g_sphere->DrawSubset(0);
+	formatRect.top = 30;
+	static wchar_t strInfo[256] = { 0 };
+	swprintf_s(strInfo, -1, L"模型坐标：(%.2f,%.2f,%.2f)", g_matWorld._41,
+		g_matWorld._42, g_matWorld._43);
+	g_pTextHelper->DrawText(NULL, strInfo, -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(135, 239, 136, 255));
+	// 输出帮助信息
+	formatRect.left = 0, formatRect.top = 380;
+	g_pTextInfor->DrawText(NULL, L"控制说明:", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(235, 123, 230, 255));
+	formatRect.top += 35;
+	g_pTextHelper->DrawText(NULL, L"    按住鼠标左键并拖动：平移模型", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    按住鼠标右键并拖动：旋转模型", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    滑动鼠标滚轮：拉伸模型", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    W、S、A、D键：平移模型 ", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    上、下、左、右方向键：旋转模型 ", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    ESC键 : 退出程序", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
 
 	//在窗口右上角处，显示每秒帧数
 	int charCount = swprintf_s(g_strFPS, 20, _T("FPS:%0.3f"), Get_FPS());
@@ -431,9 +481,9 @@ void Direct3D_Render(HWND hwnd)
 	// 【Direct3D渲染五步曲之四】：结束绘制
 	//--------------------------------------------------------------------------------------
 	g_pd3dDevice->EndScene();                       // 结束绘制
-//--------------------------------------------------------------------------------------
-// 【Direct3D渲染五步曲之五】：显示翻转
-//--------------------------------------------------------------------------------------
+													//--------------------------------------------------------------------------------------
+													// 【Direct3D渲染五步曲之五】：显示翻转
+													//--------------------------------------------------------------------------------------
 	g_pd3dDevice->Present(NULL, NULL, NULL, NULL);  // 翻转与显示
 }
 
@@ -468,11 +518,17 @@ float Get_FPS()
 void Direct3D_CleanUp()
 {
 	//释放COM接口对象
-	SAFE_RELEASE(g_torus)
-		SAFE_RELEASE(g_sphere)
-		SAFE_RELEASE(g_cube)
-		SAFE_RELEASE(g_teapot)
+	g_pMouseDevice->Unacquire();
+	g_pKeyboardDevice->Unacquire();
+	for (int i = 0; i < g_dwNumMtrls; i++)
+	{
+		SAFE_RELEASE(g_pTextures[i])
+	}
+	SAFE_DELETE(g_pTextures)
+		SAFE_DELETE(g_pMaterial)
+		SAFE_RELEASE(g_pMesh)
 		SAFE_RELEASE(g_pFont)
 		SAFE_RELEASE(g_pd3dDevice)
+		SAFE_RELEASE(g_pMouseDevice)
+		SAFE_RELEASE(g_pKeyboardDevice)
 }
-
