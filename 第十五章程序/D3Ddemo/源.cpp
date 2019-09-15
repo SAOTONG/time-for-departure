@@ -112,7 +112,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ShowWindow(hwnd, nShowCmd);    //调用ShowWindow函数来显示窗口
 	UpdateWindow(hwnd);						//对窗口进行更新，就像我们买了新房子要装修一样
 
-	PlaySound(L"ファングのテーマ.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); //循环播放背景音乐 
+	//PlaySound(L"ファングのテーマ.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); //循环播放背景音乐 
 
 																		   //【5】消息循环过程
 	MSG msg = { 0 };  //初始化msg
