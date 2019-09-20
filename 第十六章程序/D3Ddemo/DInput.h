@@ -6,7 +6,6 @@
 
 #include <dinput.h>
 #include "D3DUtil.h"
-#include <vector>
 
 using namespace std;
 
