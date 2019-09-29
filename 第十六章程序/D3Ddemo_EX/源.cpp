@@ -21,8 +21,8 @@
 
 struct CUSTOMVERTEX
 {
-	FLOAT _x, _y, _z;  //顶点的坐标
-	FLOAT _u, _v;      //纹理的坐标
+	FLOAT _x, _y, _z;  // 顶点的坐标
+	FLOAT _u, _v;      // 纹理的坐标
 	CUSTOMVERTEX(FLOAT x, FLOAT y, FLOAT z, FLOAT u, FLOAT v) :_x(x), _y(y), _z(z),
 		_u(u), _v(v) {}
 };
@@ -56,7 +56,7 @@ VOID			 Direct3D_CleanUp();		  // 在这个函数中清理COM资源以及其他资源
 float		     Get_FPS();					  // 计算帧数的函数
 VOID			 Matrix_Set();                // 封装了四大变换的函数
 
-											  // 描述：Windows应用程序的入口函数
+// 描述：Windows应用程序的入口函数
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	//【1】窗口创建四步曲之一：开始设计一个完整的窗口类
@@ -103,14 +103,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ShowWindow(hwnd, nShowCmd);  // 调用ShowWindow函数来显示窗口
 	UpdateWindow(hwnd);			 // 对窗口进行更新，就像我们买了新房子要装修一样
 
-								 // 循环播放背景音乐 
-								 //PlaySound(L"ファングのテーマ.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
+	// 循环播放背景音乐 
+	// PlaySound(L"ファングのテーマ.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
 
 	g_pDirectInput = new DInput();
 	if (!(S_OK == g_pDirectInput->Init(hwnd, hInstance, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE,
 		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)))
 	{
-		//使用MessageBox函数，创建一个消息窗口 
+		// 使用MessageBox函数，创建一个消息窗口 
 		MessageBox(hwnd, _T("DirectInput初始化失败~！"), _T("错误"), 0);
 		DestroyWindow(hwnd);
 	}
@@ -369,11 +369,11 @@ HRESULT Objects_Init(HWND hwnd)
 	//g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 	//g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 
-	// 多级渐进过滤
-	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, 
-		/*相邻纹理级之间的过滤方式=*/D3DTEXF_LINEAR);
-	// 设置纹理过滤的最大级数
-	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAXMIPLEVEL, 16);
+	//// 多级渐进过滤
+	//g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, 
+	//	/*相邻纹理级之间的过滤方式=*/D3DTEXF_LINEAR);
+	//// 设置纹理过滤的最大级数
+	//g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAXMIPLEVEL, /*纹理过滤的最大级数*/0);
 
 	return S_OK;
 }
@@ -458,7 +458,7 @@ VOID Matrix_Set()
 
 	//【四大变换之三】：投影变换矩阵的设置
 	D3DXMATRIX matProj;  // 定义一个矩阵
-						 // 计算投影变换矩阵
+	// 计算投影变换矩阵
 	D3DXMatrixPerspectiveFovLH(&matProj, D3DX_PI / 4.0f,
 		(float)((double)WINDOW_WIDTH / WINDOW_HEIGHT),
 		1.0f, 1000.0f);
@@ -496,7 +496,7 @@ void Direct3D_Render(HWND hwnd)
 	g_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);  // 设置灵活顶点格式
 	g_pd3dDevice->SetIndices(g_pIndexBuffer);   // 设置索引缓存
 
-												// 启用纹理
+	// 启用纹理
 	g_pd3dDevice->SetTexture(0, g_pTexture);
 	// 利用顶点缓存配合索引缓存绘制图形
 	g_pd3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 12);
@@ -549,7 +549,7 @@ void Direct3D_Render(HWND hwnd)
 
 	//【Direct3D渲染五步曲之四】：结束绘制
 	g_pd3dDevice->EndScene();                       // 结束绘制
-													//【Direct3D渲染五步曲之五】：显示翻转
+	//【Direct3D渲染五步曲之五】：显示翻转
 	g_pd3dDevice->Present(NULL, NULL, NULL, NULL);  // 翻转与显示
 }
 
@@ -565,11 +565,11 @@ float Get_FPS()
 	frameCount++;  // 每调用一次Get_FPS()函数，帧数自增1
 	currentTime = timeGetTime()*0.001f;  // 获取系统时间，其中timeGetTime函数返回的是以毫秒为单位的系统时间，所以需要乘以0.001，得到单位为秒的时间
 
-										 // 如果当前时间减去持续时间大于了1秒钟，就进行一次FPS的计算和持续时间的更新，并将帧数值清零
+	// 如果当前时间减去持续时间大于了1秒钟，就进行一次FPS的计算和持续时间的更新，并将帧数值清零
 	if (currentTime - lastTime > 1.0f)   // 将时间控制在1秒钟
 	{
 		fps = (float)frameCount / (currentTime - lastTime);  // 计算这1秒钟的FPS值
-															 // 将当前时间currentTime赋给持续时间lastTime，作为下一秒的基准时间
+		// 将当前时间currentTime赋给持续时间lastTime，作为下一秒的基准时间
 		lastTime = currentTime;
 		frameCount = 0;  // 将本次帧数frameCount值清零
 	}
