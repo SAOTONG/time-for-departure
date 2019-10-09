@@ -1,5 +1,5 @@
 //=================================================================================
-// 描述：源.cpp文件，使用模板测试技术实现镜像特效
+// 描述：源.cpp文件，初步实现了摄像机类的使用，利用摄像机在三维空间自由翱翔
 //=================================================================================
 
 #include <d3d9.h>
@@ -7,6 +7,7 @@
 #include <tchar.h>
 #include <time.h> 
 #include "DInput.h"
+#include "CameraClass.h"
 
 #pragma comment(lib,"winmm.lib")     // 调用PlaySound函数所需库文件
 #pragma comment(lib,"d3d9.lib")
@@ -14,18 +15,21 @@
 #pragma comment(lib, "dinput8.lib")  // 使用DirectInput必须包含的头文件，注意这里有8
 #pragma comment(lib,"dxguid.lib")
 
-#define WINDOW_WIDTH	800	 // 为窗口宽度定义的宏，以方便在此处修改窗口宽度
-#define WINDOW_HEIGHT	600  // 为窗口高度定义的宏，以方便在此处修改窗口高度
-#define WINDOW_TITLE	L"使用Alpha融合技术实现模型的透明效果"  // 为窗口标题定义的宏
+#define WINDOW_WIDTH	932	 // 为窗口宽度定义的宏，以方便在此处修改窗口宽度
+#define WINDOW_HEIGHT	700  // 为窗口高度定义的宏，以方便在此处修改窗口高度
+#define WINDOW_TITLE	L"利用摄像机在三维空间自由翱翔"  // 为窗口标题定义的宏
 
 struct CUSTOMVERTEX
 {
-	FLOAT _x, _y, _z;  // 顶点的坐标
-	FLOAT _u, _v;      // 纹理的坐标
-	CUSTOMVERTEX(FLOAT x, FLOAT y, FLOAT z, FLOAT u, FLOAT v) :_x(x), _y(y), _z(z),
+	FLOAT _x, _y, _z;     // 顶点的坐标
+	FLOAT _nx, _ny, _nz;  // 
+	FLOAT _u, _v;         // 纹理的坐标
+						  // 构造函数
+	CUSTOMVERTEX(FLOAT x, FLOAT y, FLOAT z, FLOAT nx, FLOAT ny, FLOAT nz,
+		FLOAT u, FLOAT v) :_x(x), _y(y), _z(z), _nx(nx), _ny(ny), _nz(nz),
 		_u(u), _v(v) {}
 };
-#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_TEX1)
+#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_NORMAL|D3DFVF_TEX1)
 
 LPDIRECT3DDEVICE9  g_pd3dDevice = NULL;        // Direct3D设备对象
 ID3DXFont*		   g_pFont = NULL;             // 字体COM接口
@@ -38,17 +42,19 @@ wchar_t			   g_strFPS[50];                  // 包含帧速率的字符数组
 wchar_t            g_strAdapterName[60] = { 0 };  // 显卡名称字符数组
 
 D3DXMATRIX 			    g_matWorld;
-LPD3DXMESH              g_pMesh = NULL;         // 网格对象
-D3DMATERIAL9*           g_pMaterial = NULL;     // 网格的材质信息
-DWORD                   g_dwNumMtrls = NULL;    // 材质的数量
-LPDIRECT3DTEXTURE9*     g_pTexture = NULL;      // 网格的纹理
-DInput*                 g_pDirectInput = NULL;  // DirectInput封装类对象
-LPD3DXMESH              g_pMeshWall = NULL;     // 墙面网格对象
-D3DMATERIAL9            g_pMaterialWall;        // 墙面材质
+LPD3DXMESH              g_pMesh = NULL;          // 网格对象
+D3DMATERIAL9*           g_pMaterial = NULL;      // 网格的材质信息
+DWORD                   g_dwNumMtrls = NULL;     // 材质的数量
+LPDIRECT3DTEXTURE9*     g_pTexture = NULL;       // 网格的纹理
+LPD3DXMESH              g_pCyliderMesh = NULL;       // 柱子网格对象
+D3DMATERIAL9            g_CyliderMaterial;       // 柱子材质
+DInput*                 g_pDirectInput = NULL;   // DirectInput封装类对象
+CameraClass*            g_pCamera = NULL;        // 摄像机封装类对象
+LPDIRECT3DVERTEXBUFFER9 g_pGrassVertexBuffer = NULL;  // 用来绘制草坪的顶点缓存
+LPDIRECT3DTEXTURE9      g_pGrassTexture = NULL;       // 用来绘制草坪的纹理对象
 
-
-// 描述：全局函数声明,防止“未声明的标识”系列错误
-// 窗口过程函数
+													  // 描述：全局函数声明,防止“未声明的标识”系列错误
+													  // 窗口过程函数
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 HRESULT			 Direct3D_Init(HWND hwnd, HINSTANCE hInstance);  // 在这个函数中进行Direct3D的初始化
 HRESULT			 Objects_Init(HWND hwnd);     // 在这个函数中进行要绘制的物体的资源初始化
@@ -56,7 +62,7 @@ VOID             Direct3D_Update(HWND hwnd);  // 在这个函数中进行画面更新操作
 VOID			 Direct3D_Render(HWND hwnd);  // 在这个函数中进行Direct3D渲染代码的书写
 VOID			 Direct3D_CleanUp();		  // 在这个函数中清理COM资源以及其他资源
 float		     Get_FPS();					  // 计算帧数的函数
-VOID			 Matrix_Set();                // 封装了四大变换的函数
+void			 HelpText_Render(HWND hwnd);  // 绘制帮助信息的函数
 
 											  // 描述：Windows应用程序的入口函数
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
@@ -227,7 +233,7 @@ HRESULT Direct3D_Init(HWND hwnd, HINSTANCE hInstance)
 
 	SAFE_RELEASE(pD3D); // LPDIRECT3D9接口对象的使命完成，我们将其释放掉
 
-	// 调用一次Objects_Init，进行渲染资源的初始化
+						// 调用一次Objects_Init，进行渲染资源的初始化
 	if (!(S_OK == Objects_Init(hwnd))) return E_FAIL;
 
 	return S_OK;
@@ -259,7 +265,7 @@ HRESULT Objects_Init(HWND hwnd)
 	// 从X文件中加载网格数据
 	LPD3DXBUFFER pAdjBuffer = NULL;
 	LPD3DXBUFFER pMtrlBuffer = NULL;
-	D3DXLoadMeshFromX(L"lighting.X", D3DXMESH_MANAGED, g_pd3dDevice,
+	D3DXLoadMeshFromX(L"WYJ.X", D3DXMESH_MANAGED, g_pd3dDevice,
 		&pAdjBuffer, &pMtrlBuffer, NULL, &g_dwNumMtrls, &g_pMesh);
 
 	// 读取材质和纹理数据
@@ -275,30 +281,58 @@ HRESULT Objects_Init(HWND hwnd)
 		D3DXCreateTextureFromFileA(g_pd3dDevice,
 			pMtrls[i].pTextureFilename, &g_pTexture[i]);
 		//g_pMaterial[i].Diffuse.a = 0.3f;  // 设置材质的Alpha的分量
-		
+
 	}
 	pAdjBuffer->Release();
 	pMtrlBuffer->Release();
 
-	// 创建一个镜子,并填充材质信息
-	D3DXCreateBox(g_pd3dDevice, 120.0f, 120.0f, 0.3f, &g_pMeshWall, NULL);
-	g_pMaterialWall.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	g_pMaterialWall.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	g_pMaterialWall.Specular = D3DXCOLOR(0.2f, 1.0f, 1.0f, 1.0f);
+	// 创建一片草坪,50x50=250个纹理
+	g_pd3dDevice->CreateVertexBuffer(4 * sizeof(CUSTOMVERTEX), 0, D3DFVF_CUSTOMVERTEX,
+		D3DPOOL_MANAGED, &g_pGrassVertexBuffer, 0);
+
+	CUSTOMVERTEX* pVertex = NULL;
+	g_pGrassVertexBuffer->Lock(0, 0, (void**)&pVertex, 0);
+	pVertex[0] = CUSTOMVERTEX(-500.0f, 0.0f, -500.0f, 0.0f, 1.0f, 0.0f, 0.0f, 50.0f);
+	pVertex[1] = CUSTOMVERTEX(-500.0f, 0.0f, 500.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
+	pVertex[2] = CUSTOMVERTEX(500.0f, 0.0f, -500.0f, 0.0f, 1.0f, 0.0f, 50.0f, 50.0f);
+	pVertex[3] = CUSTOMVERTEX(500.0f, 0.0f, 500.0f, 0.0f, 1.0f, 0.0f, 50.0f, 0.0f);
+	g_pGrassVertexBuffer->Unlock();
+
+	// 创建地板纹理
+	D3DXCreateTextureFromFile(g_pd3dDevice, L"grass.jpg", &g_pGrassTexture);
+
+	// 创建柱子
+	D3DXCreateCylinder(g_pd3dDevice, 10.0f, 10.0f, 500.0f, 60, 60, &g_pCyliderMesh, 0);
+	g_CyliderMaterial.Ambient = D3DXCOLOR(0.9f, 0.0f, 0.8f, 1.0f);
+	g_CyliderMaterial.Diffuse = D3DXCOLOR(0.9f, 0.0f, 0.8f, 1.0f);
+	g_CyliderMaterial.Specular = D3DXCOLOR(0.9f, 0.2f, 0.9f, 0.9f);
+	g_CyliderMaterial.Emissive = D3DXCOLOR(0.0f, 0.0f, 0.9f, 1.0f);
+
 	// 设置环境光
 	D3DLIGHT9 light;
 	::ZeroMemory(&light, sizeof(light));
 	light.Type = D3DLIGHT_DIRECTIONAL;
-	light.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+	light.Ambient = D3DXCOLOR(0.7f, 0.7f, 0.7f, 1.0f);
 	light.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	light.Specular = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	light.Direction = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
+	light.Specular = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);
+	light.Direction = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
 	g_pd3dDevice->SetLight(0, &light);
 	g_pd3dDevice->LightEnable(0, true);
 	g_pd3dDevice->SetRenderState(D3DRS_NORMALIZENORMALS, true);
 	g_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, true);
-	// 调用封装了四大变换的函数，对Direct3D世界变换，取景变换，投影变换，视口变换进行设置
-	
+
+	// 创建并初始化虚拟摄像机
+	g_pCamera = new CameraClass(g_pd3dDevice);
+	g_pCamera->SetCameraPosition(&D3DXVECTOR3(0.0f, 200.0f, -300.0f));
+	g_pCamera->SetTargetPosition(&D3DXVECTOR3(0.0f, 300.0f, 0.0f));
+	g_pCamera->SetViewMatrix();
+	g_pCamera->SetProjMatrix();
+
+	// 设置纹理过滤和纹理寻址方式
+	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+
 	return S_OK;
 }
 
@@ -306,87 +340,39 @@ VOID Direct3D_Update(HWND hwnd)
 {
 	g_pDirectInput->GetInput();
 
-	static FLOAT fPosX = 0.0f, fPosY = 0.0f, fPosZ = 0.0f;
+	// 沿摄像机各分量平移视角
+	if (g_pDirectInput->IsKeyButtonDown(DIK_W))g_pCamera->MoveAlongUpVec(0.3f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_A))g_pCamera->MoveAlongRightVec(-0.3f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_S))g_pCamera->MoveAlongUpVec(-0.3f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_D))g_pCamera->MoveAlongRightVec(0.3f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_R))g_pCamera->MoveAlongLookVec(0.3f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_F))g_pCamera->MoveAlongLookVec(-0.3f);
 
-	if (g_pDirectInput->IsMouseButtonDown(0))
-	{
-		fPosX += (g_pDirectInput->MouseDX()) *  0.08f;
-		fPosY += (g_pDirectInput->MouseDY()) * -0.08f;
-	}
+	// 沿摄像机各分量旋转视角
+	if (g_pDirectInput->IsKeyButtonDown(DIK_UP))g_pCamera->RotationRightVec(-0.003f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_DOWN))g_pCamera->RotationRightVec(0.003f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_LEFT))g_pCamera->RotationUpVec(-0.003f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_RIGHT))g_pCamera->RotationUpVec(0.003f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_Q))g_pCamera->RotationLookVec(-0.001f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_E))g_pCamera->RotationLookVec(0.001f);
+
+	// 鼠标控制上向量和右向量的旋转
+	g_pCamera->RotationUpVec(g_pDirectInput->MouseDX()*0.001f);
+	g_pCamera->RotationRightVec(g_pDirectInput->MouseDY()*0.001f);
+
+	// 鼠标滚轮控制观察点收缩操作
+	static FLOAT fPosZ = 0.0f;
 	fPosZ += (g_pDirectInput->MouseDZ())*0.04f;
 
-	if (g_pDirectInput->IsKeyButtonDown(DIK_W))fPosY += 0.1f;
-	if (g_pDirectInput->IsKeyButtonDown(DIK_A))fPosX -= 0.1f;
-	if (g_pDirectInput->IsKeyButtonDown(DIK_S))fPosY -= 0.1f;
-	if (g_pDirectInput->IsKeyButtonDown(DIK_D))fPosX += 0.1f;
+	// 计算并设置取景变换矩阵
+	D3DXMATRIX matView;
+	g_pCamera->CalculateViewMatrix(&matView);
+	g_pd3dDevice->SetTransform(D3DTS_VIEW, &matView);
 
-	D3DXMatrixTranslation(&g_matWorld, fPosX, fPosY, fPosZ);
+	// 得到正确的世界矩阵
+	D3DXMatrixTranslation(&g_matWorld, 0.0f, 0.0f, fPosZ);
 
-	static float fAngleX = 0.15f, fAngleY = -(float)D3DX_PI;
-	if (g_pDirectInput->IsMouseButtonDown(1))
-	{
-		fAngleX += (g_pDirectInput->MouseDY()) * -0.01f;
-		fAngleY += (g_pDirectInput->MouseDX()) * -0.01f;
-	}
-
-	if (g_pDirectInput->IsKeyButtonDown(DIK_UP))fAngleX += 0.025f;
-	if (g_pDirectInput->IsKeyButtonDown(DIK_DOWN))fAngleX -= 0.025f;
-	if (g_pDirectInput->IsKeyButtonDown(DIK_LEFT))fAngleY -= 0.025f;
-	if (g_pDirectInput->IsKeyButtonDown(DIK_RIGHT))fAngleY += 0.025f;
-
-	// 通过键盘按键的按下控制漫反射Alpha分量的变化
-	/*if (g_pDirectInput->IsKeyButtonDown(DIK_1))
-	{
-		for (DWORD i = 0; i < g_dwNumMtrls; i++)
-		{
-			g_pMaterial[i].Diffuse.a += 0.01f;
-		}
-	}
-	if (g_pDirectInput->IsKeyButtonDown(DIK_2))
-	{
-		for (DWORD i = 0; i < g_dwNumMtrls; i++)
-		{
-			g_pMaterial[i].Diffuse.a -= 0.01f;
-		}
-	}*/
-	D3DXMATRIX Rx, Ry;
-	D3DXMatrixRotationX(&Rx, fAngleX);
-	D3DXMatrixRotationY(&Ry, fAngleY);
-	g_matWorld = Rx * Ry*g_matWorld;
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_matWorld);
-	Matrix_Set();
-}
-
-// 描述：封装了Direct3D四大变换的函数，即世界变换，取景变换，投影变换，视口变换的设置
-VOID Matrix_Set()
-{
-	//【四大变换之一】：世界变换矩阵的设置
-
-	//【四大变换之二】：取景变换矩阵的设置
-	D3DXMATRIX matView;  // 定义一个矩阵
-	D3DXVECTOR3 vEye(0.0f, 0.0f, -250.0f);  // 摄像机的位置
-	D3DXVECTOR3 vAt(0.0f, 0.0f, 0.0f);       // 观察点的位置
-	D3DXVECTOR3 vUp(0.0f, 1.0f, 0.0f);       // 向上的向量
-	D3DXMatrixLookAtLH(&matView, &vEye, &vAt, &vUp);   // 计算出取景变换矩阵
-	g_pd3dDevice->SetTransform(D3DTS_VIEW, &matView);  // 应用取景变换矩阵
-
-													   //【四大变换之三】：投影变换矩阵的设置
-	D3DXMATRIX matProj;  // 定义一个矩阵
-						 // 计算投影变换矩阵
-	D3DXMatrixPerspectiveFovLH(&matProj, D3DX_PI / 4.0f,
-		(float)((double)WINDOW_WIDTH / WINDOW_HEIGHT),
-		1.0f, 1000.0f);
-	g_pd3dDevice->SetTransform(D3DTS_PROJECTION, &matProj);  // 设置投影变换矩阵
-
-    //【四大变换之四】：视口变换的设置
-	D3DVIEWPORT9 vp;  // 实例化一个D3DVIEWPORT9结构体，然后做填空题给各个参数赋值就可以了
-	vp.X = 0;		  // 表示视口相对于窗口的X坐标
-	vp.Y = 0;		  // 视口相对对窗口的Y坐标
-	vp.Width = WINDOW_WIDTH;	// 视口的宽度
-	vp.Height = WINDOW_HEIGHT;  // 视口的高度
-	vp.MinZ = 0.0f;  // 视口在深度缓存中的最小深度值
-	vp.MaxZ = 1.0f;	 // 视口在深度缓存中的最大深度值
-	g_pd3dDevice->SetViewport(&vp);  // 视口的设置
+	ShowCursor(false);  // 隐藏鼠标光标
 
 }
 
@@ -394,22 +380,13 @@ VOID Matrix_Set()
 void Direct3D_Render(HWND hwnd)
 {
 	//【Direct3D渲染五步曲之一】：清屏操作
-	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL,
-		D3DCOLOR_XRGB(100, 150, 0), 1.0f, 0);
-
-	// 定义一个矩形，用于获取主窗口矩形
-	RECT formatRect;
-	GetClientRect(hwnd, &formatRect);
+	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL,
+		D3DCOLOR_XRGB(50, 100, 250), 1.0f, 0);
 
 	//【Direct3D渲染五步曲之二】：开始绘制
 	g_pd3dDevice->BeginScene();  // 开始绘制
 
-	//定义一些矩阵
-	D3DXMATRIX matHero, matWorld, matRotation;
-
-	D3DXMatrixTranslation(&matHero, -20.0f, 0.0f, -25.0f);
-	matHero = matHero * g_matWorld;
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &matHero);
+	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_matWorld);
 
 	for (DWORD i = 0; i < g_dwNumMtrls; i++)
 	{
@@ -418,104 +395,33 @@ void Direct3D_Render(HWND hwnd)
 		g_pMesh->DrawSubset(i);
 	}
 
-	D3DXMatrixTranslation(&matWorld, 0.0f, 0.0f, 0.0f);  // 初始化墙面世界矩阵
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
-	g_pd3dDevice->SetMaterial(&g_pMaterialWall);
-	g_pMeshWall->DrawSubset(0); 
-
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILENABLE, true);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILREF, 0x1);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILMASK, 0xffffffff);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
-
-	// 进行融合操作，而且禁止向深度缓存和后台缓存写数据
-	g_pd3dDevice->SetRenderState(D3DRS_ZWRITEENABLE, false);
-	g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-	g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ZERO);
-	g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
-
-	// 绘制出镜面区域
+	// 绘制草坪
+	D3DXMATRIX matWorld;
 	D3DXMatrixTranslation(&matWorld, 0.0f, 0.0f, 0.0f);
 	g_pd3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
-	g_pd3dDevice->SetMaterial(&g_pMaterialWall);
-	g_pMeshWall->DrawSubset(0);
+	g_pd3dDevice->SetTexture(0, g_pGrassTexture);
+	g_pd3dDevice->SetStreamSource(0, g_pGrassVertexBuffer, 0, sizeof(CUSTOMVERTEX));
+	g_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
+	g_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
 
-	// 将镜像与镜面进行融合运算，并清理一下z缓存
-	g_pd3dDevice->Clear(0, 0, D3DCLEAR_ZBUFFER, 0, 1.0f, 0);
-	g_pd3dDevice->SetRenderState(D3DRS_ZWRITEENABLE, true);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
-	g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_DESTCOLOR);
-	g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW);
-
-	// 计算镜像变换矩阵
-	D3DXMATRIX matReflect;
-	D3DXPLANE planeXY(0.0f, 0.0f, 1.0f, 0.0f);
-	D3DXMatrixReflect(&matReflect, &planeXY);
-	matWorld = matReflect * matHero;
-
-	// 绘制镜子中的模型
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
-	for (DWORD i = 0; i < g_dwNumMtrls; i++)
+	// 绘制柱子
+	D3DXMATRIX TransMatrix, RotMatrix, FinalMatrix;
+	D3DXMatrixRotationX(&RotMatrix, -D3DX_PI * 0.5f);
+	g_pd3dDevice->SetMaterial(&g_CyliderMaterial);
+	for (int i = 0; i < 6; i++)
 	{
-		g_pd3dDevice->SetMaterial(&g_pMaterial[i]);
-		g_pd3dDevice->SetTexture(0, g_pTexture[i]);
-		g_pMesh->DrawSubset(i);
+		D3DXMatrixTranslation(&TransMatrix, -100.0f, 0.0f, -150.0f + (i * 75.0f));
+		FinalMatrix = RotMatrix * TransMatrix;
+		g_pd3dDevice->SetTransform(D3DTS_WORLD, &FinalMatrix);
+		g_pCyliderMesh->DrawSubset(0);
+
+		D3DXMatrixTranslation(&TransMatrix, 100.0f, 0.0f, -150.0f + (i * 75.0f));
+		FinalMatrix = RotMatrix * TransMatrix;
+		g_pd3dDevice->SetTransform(D3DTS_WORLD, &FinalMatrix);
+		g_pCyliderMesh->DrawSubset(0);
 	}
 
-	// 恢复渲染状态
-	g_pd3dDevice->SetRenderState(D3DRS_STENCILENABLE, false);
-	g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, false);
-	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
-
-	g_pTextAdapterName->DrawText(NULL, g_strAdapterName, -1,
-		&formatRect, DT_TOP | DT_LEFT,
-		D3DXCOLOR(1.0f, 0.5f, 0.0f, 1.0f));
-
-	formatRect.top = 30;
-	static wchar_t strInfo[256] = { 0 };
-	swprintf_s(strInfo, -1, L"模型坐标：(%.2f,%.2f,%.2f)", g_matWorld._41,
-		g_matWorld._42, g_matWorld._43);
-	g_pTextHelper->DrawText(NULL, strInfo, -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(135, 239, 136, 255));
-	// 输出帮助信息
-	formatRect.left = 0, formatRect.top = 380;
-	g_pTextInfor->DrawText(NULL, L"控制说明:", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(235, 123, 230, 255));
-	formatRect.top += 35;
-	g_pTextHelper->DrawText(NULL, L"    按住鼠标左键并拖动：平移模型", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(255, 200, 0, 255));
-	formatRect.top += 25;
-	g_pTextHelper->DrawText(NULL, L"    按住鼠标右键并拖动：旋转模型", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(255, 200, 0, 255));
-	formatRect.top += 25;
-	g_pTextHelper->DrawText(NULL, L"    滑动鼠标滚轮：拉伸模型", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(255, 200, 0, 255));
-	formatRect.top += 25;
-	g_pTextHelper->DrawText(NULL, L"    W、S、A、D键：平移模型 ", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(255, 200, 0, 255));
-	formatRect.top += 25;
-	g_pTextHelper->DrawText(NULL, L"    上、下、左、右方向键：旋转模型 ", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(255, 200, 0, 255));
-	formatRect.top += 25;
-	g_pTextHelper->DrawText(NULL, L"    ESC键 : 退出程序", -1, &formatRect,
-		DT_SINGLELINE | DT_NOCLIP | DT_LEFT,
-		D3DCOLOR_ARGB(255, 200, 0, 255));
-
-	// 在窗口右上角处，显示每秒帧数
-	int charCount = swprintf_s(g_strFPS, 20, _T("FPS:%0.3f"), Get_FPS());
-	g_pFont->DrawText(NULL, g_strFPS, charCount, &formatRect, DT_TOP | DT_RIGHT,
-		D3DCOLOR_XRGB(255, 39, 136));
+	HelpText_Render(hwnd);
 
 	//【Direct3D渲染五步曲之四】：结束绘制
 	g_pd3dDevice->EndScene();                       // 结束绘制
@@ -547,6 +453,46 @@ float Get_FPS()
 	return fps;
 }
 
+void HelpText_Render(HWND hwnd)
+{
+	RECT formatRect;
+	GetClientRect(hwnd, &formatRect);
+	//在窗口右上角处，显示每秒帧数
+	formatRect.top = 5;
+	int charCount = swprintf_s(g_strFPS, 20, _T("FPS:%0.3f"), Get_FPS());
+	g_pFont->DrawText(NULL, g_strFPS, charCount, &formatRect, DT_TOP | DT_RIGHT, D3DCOLOR_RGBA(0, 239, 136, 255));
+
+	//显示显卡类型名
+	g_pTextAdapterName->DrawText(NULL, g_strAdapterName, -1, &formatRect,
+		DT_TOP | DT_LEFT, D3DXCOLOR(1.0f, 0.5f, 0.0f, 1.0f));
+
+	// 输出帮助信息
+	formatRect.left = 0, formatRect.top = 380;
+	g_pTextInfor->DrawText(NULL, L"控制说明:", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(235, 123, 230, 255));
+	formatRect.top += 35;
+	g_pTextHelper->DrawText(NULL, L"    W：向前飞翔     S：向后飞翔 ", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    A：向左飞翔     D：向右飞翔", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    R：垂直向上飞翔     F：垂直向下飞翔", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    Q：向左倾斜       E：向右倾斜", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    上、下、左、右方向键、鼠标移动：视角变化 ", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"     鼠标滚轮：人物模型Y轴方向移动", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+	formatRect.top += 25;
+	g_pTextHelper->DrawText(NULL, L"    ESC键 : 退出程序", -1, &formatRect,
+		DT_SINGLELINE | DT_NOCLIP | DT_LEFT, D3DCOLOR_RGBA(255, 200, 0, 255));
+}
+
 // 描述：资源清理函数，在此函数中进行程序退出前资源的清理工作
 void Direct3D_CleanUp()
 {
@@ -557,7 +503,6 @@ void Direct3D_CleanUp()
 	SAFE_DELETE(g_pTexture);
 	SAFE_DELETE(g_pMaterial);
 	SAFE_DELETE(g_pDirectInput);
-	SAFE_RELEASE(g_pMeshWall);
 	SAFE_RELEASE(g_pMesh);
 	SAFE_RELEASE(g_pd3dDevice);
 	SAFE_RELEASE(g_pTextAdapterName);
@@ -565,4 +510,5 @@ void Direct3D_CleanUp()
 	SAFE_RELEASE(g_pTextInfor);
 	SAFE_RELEASE(g_pFont);
 	SAFE_RELEASE(g_pd3dDevice);
+	SAFE_RELEASE(g_pCyliderMesh);
 }
