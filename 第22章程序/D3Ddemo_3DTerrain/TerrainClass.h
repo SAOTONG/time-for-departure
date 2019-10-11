@@ -24,6 +24,9 @@ private:
 	float m_fTerrainDepth;     // 地形深度
 	float m_fMeshSpacing;      // 网格间距
 	float M_fHeightScale;      // 高度缩放系数
+	// TODO(1053001374@qq.com): Use a "*" here for concatenation operator.
+    // TODO(侯金成) change this to use relations.
+    // TODO(完善地形类的封装): 继续完善类成员
 };
 
 TerrainClass::TerrainClass()
