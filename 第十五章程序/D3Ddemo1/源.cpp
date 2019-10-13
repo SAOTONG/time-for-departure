@@ -259,31 +259,29 @@ HRESULT Objects_Init(HWND hwnd)
 		return E_FAIL;
 
 	// 从X文件中加载网格数据
-	LPD3DXBUFFER pAdjBuffer = NULL;
-	LPD3DXBUFFER pMtrlBuffer = NULL;
-	D3DXLoadMeshFromX(L"Optimus.X", D3DXMESH_MANAGED, g_pd3dDevice,
-		&pAdjBuffer, &pMtrlBuffer, NULL, &g_dwNumMtrls, &g_pMesh);
-
+	LPD3DXBUFFER pAdjBuffer = NULL;   // 保存加载网格的邻接信息
+	LPD3DXBUFFER pMtrlBuffer = NULL;  // 用于保存网格的所有材质信息
+	D3DXLoadMeshFromX(L"Optimus.X", D3DPOOL_MANAGED, g_pd3dDevice, &pAdjBuffer, &pMtrlBuffer, 
+		NULL, &g_dwNumMtrls, &g_pMesh);  // 载入.X文件生成网格模型
 	// 读取材质和纹理数据
-	D3DXMATERIAL *pMtrls = (D3DXMATERIAL*)pMtrlBuffer->GetBufferPointer();
+	D3DXMATERIAL* pMtrl = (D3DXMATERIAL)pMtrlBuffer->GetBufferPointer;
 	g_pMaterial = new D3DMATERIAL9[g_dwNumMtrls];
 	g_pTextures = new LPDIRECT3DTEXTURE9[g_dwNumMtrls];
-
-	for (DWORD i = 0; i<g_dwNumMtrls; i++)
+	for (int i = 0; i < g_dwNumMtrls; i++)
 	{
-		g_pMaterial[i] = pMtrls[i].MatD3D;
+		g_pMaterial[i] = pMtrl->MatD3D;
 		g_pMaterial[i].Ambient = g_pMaterial[i].Diffuse;
 		g_pTextures[i] = NULL;
-		D3DXCreateTextureFromFileA(g_pd3dDevice,
-			pMtrls[i].pTextureFilename, &g_pTextures[i]);
+		D3DXCreateTextureFromFileA(g_pd3dDevice, pMtrl->pTextureFilename, &g_pTextures[i]);
 	}
 	pAdjBuffer->Release();
 	pMtrlBuffer->Release();
-	//设置渲染状态
+	
+	// 设置渲染状态
 	g_pd3dDevice->SetRenderState(D3DRS_AMBIENT,
-		D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f));//设置环境光
-	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);   //开启背面消隐
-	Matrix_Set();//调用封装了四大变换的函数，对Direct3D世界变换，取景变换，投影变换，视口变换进行设置
+		D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f));// 设置环境光
+	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);   // 开启背面消隐
+	Matrix_Set();// 调用封装了四大变换的函数，对Direct3D世界变换，取景变换，投影变换，视口变换进行设置
 	return S_OK;
 }
 
@@ -382,7 +380,7 @@ void Direct3D_Render(HWND hwnd)
 	// 【Direct3D渲染五步曲之一】：清屏操作
 	//--------------------------------------------------------------------------------------
 	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
-		D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+		D3DCOLOR_XRGB(138,43,226), 1.0f, 0);
 
 	//定义一个矩形，用于获取主窗口矩形
 	RECT formatRect;
