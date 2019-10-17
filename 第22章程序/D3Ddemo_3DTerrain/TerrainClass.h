@@ -7,6 +7,8 @@
 
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <vector>
+#include <fstream>
 
 // TerrainClass封装了三维地形系统
 // 这个类主要实现一下几个功能：
@@ -16,9 +18,14 @@
 class TerrainClass
 {
 public:
-	TerrainClass();
+	TerrainClass(IDirect3DDevice9 *pd3dDevice);
 	~TerrainClass();
-
+	// 从文件中加载高度图和纹理信息
+	bool LoadTerrainFromFile(wchar_t *pFileName, wchar_t *pTextureFile);
+	// 地形初始化函数
+	bool InitTerrain(int nRows, int nColumns, float fSpacing, float fHeightScale);
+	// 地形渲染函数
+	bool RenderTerrain(D3DXMATRIX *pMatWorld, bool bDrawFrame = FALSE);
 private:
 	// 指定地形大小的数据
 	int m_nMeshRows;           // 网格行数
@@ -29,7 +36,7 @@ private:
 	float m_fTerrainWidth;     // 地形宽度
 	float m_fTerrainDepth;     // 地形深度
 	float m_fMeshSpacing;      // 网格间距
-	float M_fHeightScale;      // 高度缩放系数
+	float m_fHeightScale;      // 高度缩放系数
 
 	// 所需的D3D对象
 	LPDIRECT3DDEVICE9 m_pd3dDevice;           // Direct3D设备对象
@@ -38,14 +45,17 @@ private:
 	LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer;  // 顶点缓存对象
 
 	// 存放高度图中的高度信息的序列
+	std::vector<float> m_vHeightInfo;
 
+	// 地形FVF顶点格式的结构体
+	struct TERRAINVERTEX
+	{
+		float _x, _y,_z;
+		float _u, _v;
+		TERRAINVERTEX(float x,float y,float z,float u,float v):_x(x),_y(y),
+			_z(z),_u(u),_v(v){}
+		static const DWORD FVF = D3DFVF_XYZ | D3DFVF_TEX1;
+	};
 };
 
-TerrainClass::TerrainClass()
-{
-}
-
-TerrainClass::~TerrainClass()
-{
-}
 #endif // !TERRAINCLASS_H
