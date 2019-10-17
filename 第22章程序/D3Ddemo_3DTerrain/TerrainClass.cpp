@@ -20,6 +20,9 @@ TerrainClass::TerrainClass(IDirect3DDevice9 * pd3dDevice)
 
 TerrainClass::~TerrainClass()
 {
+	SAFE_RELEASE(m_pIndexBuffer);
+	SAFE_RELEASE(m_pTexture);
+	SAFE_RELEASE(m_pVertexBuffer);
 }
 
 bool TerrainClass::LoadTerrainFromFile(wchar_t * pFileName, wchar_t * pTextureFile)
@@ -116,5 +119,22 @@ bool TerrainClass::InitTerrain(int nRows, int nColumns, float fSpacing, float fH
 
 bool TerrainClass::RenderTerrain(D3DXMATRIX * pMatWorld, bool bDrawFrame)
 {
-	return false;
+	m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(TERRAINVERTEX));
+	m_pd3dDevice->SetFVF(TERRAINVERTEX::FVF);
+	m_pd3dDevice->SetIndices(m_pIndexBuffer);
+	m_pd3dDevice->SetTexture(0, m_pTexture);
+	m_pd3dDevice->SetRenderState(D3DRS_LIGHTING, false);
+	m_pd3dDevice->SetTransform(D3DTS_WORLD, pMatWorld);
+	m_pd3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_nNumVertexs, 0,
+		m_nNumVertexs * 2);
+	m_pd3dDevice->SetRenderState(D3DRS_LIGHTING, true);
+	m_pd3dDevice->SetTexture(0, 0);
+	if (bDrawFrame)  //如果要渲染出线框的话
+	{
+		m_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME); //把填充模式设为线框填充
+		m_pd3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0,
+			m_nNumVertexs, 0, m_nNumVertexs * 2);	//绘制顶点  
+		m_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);	//把填充模式调回实体填充
+	}
+	return TRUE;
 }

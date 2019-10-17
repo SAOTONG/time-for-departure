@@ -9,6 +9,7 @@
 #include <d3dx9.h>
 #include <vector>
 #include <fstream>
+#include "D3DUtil.h"
 
 // TerrainClass封装了三维地形系统
 // 这个类主要实现一下几个功能：
