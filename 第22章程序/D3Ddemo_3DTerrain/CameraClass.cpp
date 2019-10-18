@@ -103,7 +103,7 @@ VOID CameraClass::SetProjMatrix(D3DXMATRIX * pMatrix)
 	if (pMatrix) m_matProj = *pMatrix;
 	else D3DXMatrixPerspectiveFovLH(&m_matProj, D3DX_PI / 4.0f, 
 		/*长宽比*/(float)((double)WINDOW_WIDTH / WINDOW_HEIGHT),
-		/*视截体近景*/1.0f, /*视截体远景*/30000.0f);
+		/*视截体近景*/1.0f, /*视截体远景*/300000.0f);
 	m_pd3dDevice->SetTransform(D3DTS_PROJECTION, &m_matProj);
 }
 

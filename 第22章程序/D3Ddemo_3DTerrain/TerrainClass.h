@@ -22,7 +22,7 @@ public:
 	TerrainClass(IDirect3DDevice9 *pd3dDevice);
 	~TerrainClass();
 	// 从文件中加载高度图和纹理信息
-	bool LoadTerrainFromFile(wchar_t *pFileName, wchar_t *pTextureFile);
+	bool LoadTerrainFromFile(const wchar_t *pFileName, const wchar_t *pTextureFile);
 	// 地形初始化函数
 	bool InitTerrain(int nRows, int nColumns, float fSpacing, float fHeightScale);
 	// 地形渲染函数

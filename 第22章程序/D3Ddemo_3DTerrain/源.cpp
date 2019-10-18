@@ -1,5 +1,5 @@
 //=================================================================================
-// 描述：源.cpp文件，初步实现了摄像机类的使用，利用摄像机在三维空间自由翱翔
+// 描述：源.cpp文件，初步实现了摄像机类的使用，并且绘制出了3维地形
 //=================================================================================
 
 #include <d3d9.h>
@@ -8,6 +8,7 @@
 #include <time.h> 
 #include "DInput.h"
 #include "CameraClass.h"
+#include "TerrainClass.h"
 
 #pragma comment(lib,"winmm.lib")     // 调用PlaySound函数所需库文件
 #pragma comment(lib,"d3d9.lib")
@@ -17,19 +18,7 @@
 
 #define WINDOW_WIDTH	932	 // 为窗口宽度定义的宏，以方便在此处修改窗口宽度
 #define WINDOW_HEIGHT	700  // 为窗口高度定义的宏，以方便在此处修改窗口高度
-#define WINDOW_TITLE	L"利用摄像机在三维空间自由翱翔"  // 为窗口标题定义的宏
-
-struct CUSTOMVERTEX
-{
-	FLOAT _x, _y, _z;     // 顶点的坐标
-	FLOAT _nx, _ny, _nz;  // 
-	FLOAT _u, _v;         // 纹理的坐标
-						  // 构造函数
-	CUSTOMVERTEX(FLOAT x, FLOAT y, FLOAT z, FLOAT nx, FLOAT ny, FLOAT nz,
-		FLOAT u, FLOAT v) :_x(x), _y(y), _z(z), _nx(nx), _ny(ny), _nz(nz),
-		_u(u), _v(v) {}
-};
-#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_NORMAL|D3DFVF_TEX1)
+#define WINDOW_TITLE	L"绘制三维地形"  // 为窗口标题定义的宏
 
 LPDIRECT3DDEVICE9  g_pd3dDevice = NULL;        // Direct3D设备对象
 ID3DXFont*		   g_pFont = NULL;             // 字体COM接口
@@ -46,15 +35,14 @@ LPD3DXMESH              g_pMesh = NULL;          // 网格对象
 D3DMATERIAL9*           g_pMaterial = NULL;      // 网格的材质信息
 DWORD                   g_dwNumMtrls = NULL;     // 材质的数量
 LPDIRECT3DTEXTURE9*     g_pTexture = NULL;       // 网格的纹理
-LPD3DXMESH              g_pCyliderMesh = NULL;       // 柱子网格对象
+LPD3DXMESH              g_pCyliderMesh = NULL;   // 柱子网格对象
 D3DMATERIAL9            g_CyliderMaterial;       // 柱子材质
 DInput*                 g_pDirectInput = NULL;   // DirectInput封装类对象
 CameraClass*            g_pCamera = NULL;        // 摄像机封装类对象
-LPDIRECT3DVERTEXBUFFER9 g_pGrassVertexBuffer = NULL;  // 用来绘制草坪的顶点缓存
-LPDIRECT3DTEXTURE9      g_pGrassTexture = NULL;       // 用来绘制草坪的纹理对象
+TerrainClass*           g_pTerrain = NULL;       // 地形封装类对象
 
-													  // 描述：全局函数声明,防止“未声明的标识”系列错误
-													  // 窗口过程函数
+// 描述：全局函数声明,防止“未声明的标识”系列错误
+// 窗口过程函数
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 HRESULT			 Direct3D_Init(HWND hwnd, HINSTANCE hInstance);  // 在这个函数中进行Direct3D的初始化
 HRESULT			 Objects_Init(HWND hwnd);     // 在这个函数中进行要绘制的物体的资源初始化
@@ -64,7 +52,7 @@ VOID			 Direct3D_CleanUp();		  // 在这个函数中清理COM资源以及其他资源
 float		     Get_FPS();					  // 计算帧数的函数
 void			 HelpText_Render(HWND hwnd);  // 绘制帮助信息的函数
 
-											  // 描述：Windows应用程序的入口函数
+// 描述：Windows应用程序的入口函数
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	//【1】窗口创建四步曲之一：开始设计一个完整的窗口类
@@ -102,7 +90,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (!(S_OK == Direct3D_Init(hwnd, hInstance)))
 	{
 		// 使用MessageBox函数，创建一个消息窗口 
-		MessageBox(hwnd, _T("Direct3D初始化失败~！"), _T("浅墨的消息窗口"), 0);
+		MessageBox(hwnd, _T("Direct3D初始化失败~！"), _T("侯金成的消息窗口"), 0);
 	}
 
 	//【4】窗口创建四步曲之四：窗口的移动、显示与更新
@@ -111,8 +99,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ShowWindow(hwnd, nShowCmd);  // 调用ShowWindow函数来显示窗口
 	UpdateWindow(hwnd);			 // 对窗口进行更新，就像我们买了新房子要装修一样
 
-								 // 循环播放背景音乐 
-								 // PlaySound(L"ファングのテーマ.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
+	// 循环播放背景音乐 
+	// PlaySound(L"ファングのテーマ.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
 
 	g_pDirectInput = new DInput();
 	if (!(S_OK == g_pDirectInput->Init(hwnd, hInstance, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE,
@@ -180,7 +168,7 @@ HRESULT Direct3D_Init(HWND hwnd, HINSTANCE hInstance)
 	//【Direct3D初始化四步曲之一,创接口】
 	// 创建Direct3D接口对象,以便用该Direct3D对象创建Direct3D设备对象
 	LPDIRECT3D9  pD3D = NULL;  // Direct3D接口对象的创建
-							   // 初始化Direct3D接口对象,并进行DirectX版本协商
+	// 初始化Direct3D接口对象,并进行DirectX版本协商
 	if (NULL == (pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
 		return E_FAIL;
 
@@ -280,33 +268,21 @@ HRESULT Objects_Init(HWND hwnd)
 		g_pTexture[i] = NULL;
 		D3DXCreateTextureFromFileA(g_pd3dDevice,
 			pMtrls[i].pTextureFilename, &g_pTexture[i]);
-		//g_pMaterial[i].Diffuse.a = 0.3f;  // 设置材质的Alpha的分量
-
 	}
 	pAdjBuffer->Release();
 	pMtrlBuffer->Release();
 
-	// 创建一片草坪,50x50=250个纹理
-	g_pd3dDevice->CreateVertexBuffer(4 * sizeof(CUSTOMVERTEX), 0, D3DFVF_CUSTOMVERTEX,
-		D3DPOOL_MANAGED, &g_pGrassVertexBuffer, 0);
-
-	CUSTOMVERTEX* pVertex = NULL;
-	g_pGrassVertexBuffer->Lock(0, 0, (void**)&pVertex, 0);
-	pVertex[0] = CUSTOMVERTEX(-500.0f, 0.0f, -500.0f, 0.0f, 1.0f, 0.0f, 0.0f, 50.0f);
-	pVertex[1] = CUSTOMVERTEX(-500.0f, 0.0f, 500.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
-	pVertex[2] = CUSTOMVERTEX(500.0f, 0.0f, -500.0f, 0.0f, 1.0f, 0.0f, 50.0f, 50.0f);
-	pVertex[3] = CUSTOMVERTEX(500.0f, 0.0f, 500.0f, 0.0f, 1.0f, 0.0f, 50.0f, 0.0f);
-	g_pGrassVertexBuffer->Unlock();
-
-	// 创建地板纹理
-	D3DXCreateTextureFromFile(g_pd3dDevice, L"grass.jpg", &g_pGrassTexture);
-
+	// 创建地形
+	g_pTerrain = new TerrainClass(g_pd3dDevice);
+	g_pTerrain->LoadTerrainFromFile(L"heighmap.raw", L"green.jpg");
+	g_pTerrain->InitTerrain(200, 200, 600.0f, 140.0f);
+	
 	// 创建柱子
-	D3DXCreateCylinder(g_pd3dDevice, 10.0f, 10.0f, 500.0f, 60, 60, &g_pCyliderMesh, 0);
-	g_CyliderMaterial.Ambient = D3DXCOLOR(0.9f, 0.0f, 0.8f, 1.0f);
-	g_CyliderMaterial.Diffuse = D3DXCOLOR(0.9f, 0.0f, 0.8f, 1.0f);
-	g_CyliderMaterial.Specular = D3DXCOLOR(0.9f, 0.2f, 0.9f, 0.9f);
-	g_CyliderMaterial.Emissive = D3DXCOLOR(0.0f, 0.0f, 0.9f, 1.0f);
+	D3DXCreateCylinder(g_pd3dDevice, 8000.0f, 100.0f, 50000.0f, 60, 60, &g_pCyliderMesh, 0);
+	g_CyliderMaterial.Ambient = D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f);
+	g_CyliderMaterial.Diffuse = D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f);
+	g_CyliderMaterial.Specular = D3DXCOLOR(0.5f, 0.0f, 0.3f, 0.3f);
+	g_CyliderMaterial.Emissive = D3DXCOLOR(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// 设置环境光
 	D3DLIGHT9 light;
@@ -314,8 +290,8 @@ HRESULT Objects_Init(HWND hwnd)
 	light.Type = D3DLIGHT_DIRECTIONAL;
 	light.Ambient = D3DXCOLOR(0.7f, 0.7f, 0.7f, 1.0f);
 	light.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	light.Specular = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);
-	light.Direction = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
+	light.Specular = D3DXCOLOR(0.9f, 0.9f, 0.9f, 1.0f);
+	light.Direction = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
 	g_pd3dDevice->SetLight(0, &light);
 	g_pd3dDevice->LightEnable(0, true);
 	g_pd3dDevice->SetRenderState(D3DRS_NORMALIZENORMALS, true);
@@ -323,15 +299,15 @@ HRESULT Objects_Init(HWND hwnd)
 
 	// 创建并初始化虚拟摄像机
 	g_pCamera = new CameraClass(g_pd3dDevice);
-	g_pCamera->SetCameraPosition(&D3DXVECTOR3(0.0f, 200.0f, -300.0f));
-	g_pCamera->SetTargetPosition(&D3DXVECTOR3(0.0f, 300.0f, 0.0f));
+	g_pCamera->SetCameraPosition(&D3DXVECTOR3(0.0f, 12000.0f, -30000.0f));
+	g_pCamera->SetTargetPosition(&D3DXVECTOR3(0.0f, 10000.0f, 0.0f));
 	g_pCamera->SetViewMatrix();
 	g_pCamera->SetProjMatrix();
 
 	// 设置纹理过滤和纹理寻址方式
-	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	/*g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+	g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);*/
 
 	return S_OK;
 }
@@ -341,12 +317,12 @@ VOID Direct3D_Update(HWND hwnd)
 	g_pDirectInput->GetInput();
 
 	// 沿摄像机各分量平移视角
-	if (g_pDirectInput->IsKeyButtonDown(DIK_W))g_pCamera->MoveAlongUpVec(0.3f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_A))g_pCamera->MoveAlongRightVec(-0.3f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_S))g_pCamera->MoveAlongUpVec(-0.3f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_D))g_pCamera->MoveAlongRightVec(0.3f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_R))g_pCamera->MoveAlongLookVec(0.3f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_F))g_pCamera->MoveAlongLookVec(-0.3f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_W))g_pCamera->MoveAlongUpVec(10.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_A))g_pCamera->MoveAlongRightVec(-10.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_S))g_pCamera->MoveAlongUpVec(-10.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_D))g_pCamera->MoveAlongRightVec(10.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_R))g_pCamera->MoveAlongLookVec(10.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_F))g_pCamera->MoveAlongLookVec(-10.0f);
 
 	// 沿摄像机各分量旋转视角
 	if (g_pDirectInput->IsKeyButtonDown(DIK_UP))g_pCamera->RotationRightVec(-0.003f);
@@ -372,7 +348,28 @@ VOID Direct3D_Update(HWND hwnd)
 	// 得到正确的世界矩阵
 	D3DXMatrixTranslation(&g_matWorld, 0.0f, 0.0f, fPosZ);
 
-	ShowCursor(false);  // 隐藏鼠标光标
+	//以下这段代码用于限制鼠标光标移动区域
+	POINT lt, rb;
+	RECT rect;
+	GetClientRect(hwnd, &rect);  //取得窗口内部矩形
+								 //将矩形左上点坐标存入lt中
+	lt.x = rect.left;
+	lt.y = rect.top;
+	//将矩形右下坐标存入rb中
+	rb.x = rect.right;
+	rb.y = rect.bottom;
+	//将lt和rb的窗口坐标转换为屏幕坐标
+	ClientToScreen(hwnd, &lt);
+	ClientToScreen(hwnd, &rb);
+	//以屏幕坐标重新设定矩形区域
+	rect.left = lt.x;
+	rect.top = lt.y;
+	rect.right = rb.x;
+	rect.bottom = rb.y;
+	//限制鼠标光标移动区域
+	ClipCursor(&rect);
+
+	ShowCursor(false);	//隐藏鼠标光标
 
 }
 
@@ -381,12 +378,19 @@ void Direct3D_Render(HWND hwnd)
 {
 	//【Direct3D渲染五步曲之一】：清屏操作
 	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL,
-		D3DCOLOR_XRGB(50, 100, 250), 1.0f, 0);
+		D3DCOLOR_XRGB(0, 108, 255), 1.0f, 0);
 
 	//【Direct3D渲染五步曲之二】：开始绘制
 	g_pd3dDevice->BeginScene();  // 开始绘制
 
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &g_matWorld);
+    // 绘制人物模型
+	D3DXMATRIX mScal, mRot1, mRot2, mTrans, mFinal;  // 定义一些矩阵，准备对大黄蜂进行矩阵变换
+	D3DXMatrixScaling(&mScal, 100.0f, 100.0f, 100.0f);
+	D3DXMatrixTranslation(&mTrans, 0, 8000, 0);
+
+	mFinal = mScal *mTrans*g_matWorld;
+	g_pd3dDevice->SetTransform(D3DTS_WORLD, &mFinal);  // 设置模型的世界矩阵，为绘制做准备
+
 
 	for (DWORD i = 0; i < g_dwNumMtrls; i++)
 	{
@@ -395,27 +399,21 @@ void Direct3D_Render(HWND hwnd)
 		g_pMesh->DrawSubset(i);
 	}
 
-	// 绘制草坪
-	D3DXMATRIX matWorld;
-	D3DXMatrixTranslation(&matWorld, 0.0f, 0.0f, 0.0f);
-	g_pd3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
-	g_pd3dDevice->SetTexture(0, g_pGrassTexture);
-	g_pd3dDevice->SetStreamSource(0, g_pGrassVertexBuffer, 0, sizeof(CUSTOMVERTEX));
-	g_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
-	g_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+	// 绘制地形
+	g_pTerrain->RenderTerrain(&g_matWorld, false);
 
 	// 绘制柱子
 	D3DXMATRIX TransMatrix, RotMatrix, FinalMatrix;
 	D3DXMatrixRotationX(&RotMatrix, -D3DX_PI * 0.5f);
 	g_pd3dDevice->SetMaterial(&g_CyliderMaterial);
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 4; i++)
 	{
-		D3DXMatrixTranslation(&TransMatrix, -100.0f, 0.0f, -150.0f + (i * 75.0f));
+		D3DXMatrixTranslation(&TransMatrix, -10000.0f, 0.0f, -15000.0f + (i * 20000.0f));
 		FinalMatrix = RotMatrix * TransMatrix;
 		g_pd3dDevice->SetTransform(D3DTS_WORLD, &FinalMatrix);
 		g_pCyliderMesh->DrawSubset(0);
 
-		D3DXMatrixTranslation(&TransMatrix, 100.0f, 0.0f, -150.0f + (i * 75.0f));
+		D3DXMatrixTranslation(&TransMatrix, 10000.0f, 0.0f, -15000.0f + (i * 20000.0f));
 		FinalMatrix = RotMatrix * TransMatrix;
 		g_pd3dDevice->SetTransform(D3DTS_WORLD, &FinalMatrix);
 		g_pCyliderMesh->DrawSubset(0);

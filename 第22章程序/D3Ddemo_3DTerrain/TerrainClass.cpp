@@ -25,7 +25,7 @@ TerrainClass::~TerrainClass()
 	SAFE_RELEASE(m_pVertexBuffer);
 }
 
-bool TerrainClass::LoadTerrainFromFile(wchar_t * pFileName, wchar_t * pTextureFile)
+bool TerrainClass::LoadTerrainFromFile(const wchar_t * pFileName, const wchar_t * pTextureFile)
 {
 	std::ifstream inFile;
 	inFile.open(pFileName, std::ios::binary);
@@ -35,7 +35,7 @@ bool TerrainClass::LoadTerrainFromFile(wchar_t * pFileName, wchar_t * pTextureFi
 	inFile.read((char*)&inData[0], inData.size());
 	inFile.close();
 	m_vHeightInfo.resize(inData.size());
-	for (int i = 0; i < inData.size(); i++)
+	for (unsigned int i = 0; i < inData.size(); i++)
 	{
 		m_vHeightInfo[i] = inData[i];
 	}
@@ -56,8 +56,9 @@ bool TerrainClass::InitTerrain(int nRows, int nColumns, float fSpacing, float fH
 	m_nMeshRowVertexs = nRows + 1;
 	m_nNumVertexs = m_nMeshColumnVertexs * m_nMeshRowVertexs;
 
-	for (auto a : m_vHeightInfo)
-		a = a * m_fHeightScale;
+	// 通过一个for循环，逐个把地形原始高度乘以缩放系数，得到缩放后的高度
+	for (unsigned int i = 0; i<m_vHeightInfo.size(); i++)
+		m_vHeightInfo[i] *= m_fHeightScale;
 	if (FAILED(m_pd3dDevice->CreateVertexBuffer(m_nNumVertexs * sizeof(TERRAINVERTEX),
 		D3DUSAGE_WRITEONLY, TERRAINVERTEX::FVF, D3DPOOL_MANAGED, &m_pVertexBuffer, 0)))
 		return false;
@@ -68,7 +69,7 @@ bool TerrainClass::InitTerrain(int nRows, int nColumns, float fSpacing, float fH
 	float fCoordU = 3.0f / (float)m_nMeshRows;     // 指定纹理的横坐标
 	float fCoordV = 3.0f / (float)m_nMeshColumns;  // 指定纹理的纵坐标
 	int nIndex = 0, i = 0, j = 0;
-	for (float z = fStartZ; z >fEndZ; z-=m_fMeshSpacing)
+	for (float z = fStartZ; z >fEndZ; z-=m_fMeshSpacing,i++)
 	{
 		j = 0;
 		for (float x = fStartX; x < fEndX; x+=m_fMeshSpacing,j++)
