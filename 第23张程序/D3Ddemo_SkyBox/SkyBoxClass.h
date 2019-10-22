@@ -16,8 +16,8 @@ public:
 	~SkyBoxClass();
 	BOOL InitSkyBox(float length);  // 初始化天空盒
 	// 从文件加载五个纹理
-	BOOL LoadSkyTextureFromFile(wchar_t *pFrontTextureFile, wchar_t *pBackTextureFile,
-		wchar_t *pLeftTextureFile, wchar_t *pRightTextureFile, wchar_t *pTopTextureFile);
+	BOOL LoadSkyTextureFromFile(const wchar_t *pFrontTextureFile, const wchar_t *pBackTextureFile,
+		const wchar_t *pLeftTextureFile, const wchar_t *pRightTextureFile, const wchar_t *pTopTextureFile);
 	VOID RenderSkyBox(D3DMATRIX *pMatWorld, BOOL bRenderFrame);
 private:
 	LPDIRECT3DDEVICE9       m_pd3dDevice;

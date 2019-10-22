@@ -1,5 +1,5 @@
 //=================================================================================
-// 描述：源.cpp文件，初步实现了摄像机类的使用，并且绘制出了3维地形
+// 描述：源.cpp文件，初步实现了摄像机类的使用，并且绘制出了3维地形和天空盒子
 //=================================================================================
 
 #include <d3d9.h>
@@ -9,6 +9,7 @@
 #include "DInput.h"
 #include "CameraClass.h"
 #include "TerrainClass.h"
+#include "SkyBoxClass.h"
 
 #pragma comment(lib,"winmm.lib")     // 调用PlaySound函数所需库文件
 #pragma comment(lib,"d3d9.lib")
@@ -18,7 +19,7 @@
 
 #define WINDOW_WIDTH	932	 // 为窗口宽度定义的宏，以方便在此处修改窗口宽度
 #define WINDOW_HEIGHT	700  // 为窗口高度定义的宏，以方便在此处修改窗口高度
-#define WINDOW_TITLE	L"绘制三维地形"  // 为窗口标题定义的宏
+#define WINDOW_TITLE	L"绘制三维地形和天空"  // 为窗口标题定义的宏
 
 LPDIRECT3DDEVICE9  g_pd3dDevice = NULL;        // Direct3D设备对象
 ID3DXFont*		   g_pFont = NULL;             // 字体COM接口
@@ -40,6 +41,8 @@ D3DMATERIAL9            g_CyliderMaterial;       // 柱子材质
 DInput*                 g_pDirectInput = NULL;   // DirectInput封装类对象
 CameraClass*            g_pCamera = NULL;        // 摄像机封装类对象
 TerrainClass*           g_pTerrain = NULL;       // 地形封装类对象
+SkyBoxClass*            g_pSkyBox = NULL;        // 天空盒子封装类对象
+
 
 // 描述：全局函数声明,防止“未声明的标识”系列错误
 // 窗口过程函数
@@ -274,11 +277,25 @@ HRESULT Objects_Init(HWND hwnd)
 
 	// 创建地形
 	g_pTerrain = new TerrainClass(g_pd3dDevice);
-	g_pTerrain->LoadTerrainFromFile(L"heighmap.raw", L"green.jpg");
-	g_pTerrain->InitTerrain(200, 200, 600.0f, 140.0f);
+	g_pTerrain->LoadTerrainFromFile(L"heighmap.raw", L"GameMedia\\terrainstone.jpg");
+	g_pTerrain->InitTerrain(200, 200, 600.0f, 40.0f);
 	
+	// 创建天空
+	g_pSkyBox = new SkyBoxClass(g_pd3dDevice);
+	g_pSkyBox->LoadSkyTextureFromFile(L"GameMedia\\frontsnow1.jpg", 
+		L"GameMedia\\backsnow1.jpg", L"GameMedia\\leftsnow1.jpg", 
+		L"GameMedia\\rightsnow1.jpg", L"GameMedia\\topsnow1.jpg");
+	g_pSkyBox->InitSkyBox(120000);
+
+	// 创建并初始化虚拟摄像机
+	g_pCamera = new CameraClass(g_pd3dDevice);
+	g_pCamera->SetCameraPosition(&D3DXVECTOR3(0.0f, 20000.0f, -20000.0f));
+	g_pCamera->SetTargetPosition(&D3DXVECTOR3(0.0f, 20000.0f, 0.0f));
+	g_pCamera->SetViewMatrix();
+	g_pCamera->SetProjMatrix();
+
 	// 创建柱子
-	D3DXCreateCylinder(g_pd3dDevice, 8000.0f, 100.0f, 50000.0f, 60, 60, &g_pCyliderMesh, 0);
+	D3DXCreateCylinder(g_pd3dDevice, 280.0f, 10.0f, 3000.0f, 60, 60, &g_pCyliderMesh, 0);
 	g_CyliderMaterial.Ambient = D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f);
 	g_CyliderMaterial.Diffuse = D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f);
 	g_CyliderMaterial.Specular = D3DXCOLOR(0.5f, 0.0f, 0.3f, 0.3f);
@@ -296,13 +313,6 @@ HRESULT Objects_Init(HWND hwnd)
 	g_pd3dDevice->LightEnable(0, true);
 	g_pd3dDevice->SetRenderState(D3DRS_NORMALIZENORMALS, true);
 	g_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, true);
-
-	// 创建并初始化虚拟摄像机
-	g_pCamera = new CameraClass(g_pd3dDevice);
-	g_pCamera->SetCameraPosition(&D3DXVECTOR3(0.0f, 12000.0f, -30000.0f));
-	g_pCamera->SetTargetPosition(&D3DXVECTOR3(0.0f, 10000.0f, 0.0f));
-	g_pCamera->SetViewMatrix();
-	g_pCamera->SetProjMatrix();
 
 	// 设置纹理过滤和纹理寻址方式
 	/*g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
@@ -401,6 +411,13 @@ void Direct3D_Render(HWND hwnd)
 
 	// 绘制地形
 	g_pTerrain->RenderTerrain(&g_matWorld, false);
+
+	// 绘制天空
+	D3DXMATRIX matSky, matTransSky, matRotSky;
+	D3DXMatrixTranslation(&matTransSky, 0.0f, -3500.0f, 0.0f);
+	D3DXMatrixRotationY(&matRotSky, -0.000005f*timeGetTime());
+	matSky = matTransSky * matRotSky;
+	g_pSkyBox->RenderSkyBox(&matSky, false);
 
 	// 绘制柱子
 	D3DXMATRIX TransMatrix, RotMatrix, FinalMatrix;

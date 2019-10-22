@@ -64,15 +64,15 @@ BOOL SkyBoxClass::InitSkyBox(float length)
 	return true;
 }
 
-BOOL SkyBoxClass::LoadSkyTextureFromFile(wchar_t * pFrontTextureFile, 
-	wchar_t * pBackTextureFile, wchar_t * pLeftTextureFile, wchar_t * pRightTextureFile, 
-	wchar_t * pTopTextureFile)
+BOOL SkyBoxClass::LoadSkyTextureFromFile(const wchar_t * pFrontTextureFile, 
+	const wchar_t * pBackTextureFile, const wchar_t * pLeftTextureFile, const wchar_t * pRightTextureFile,
+	const wchar_t * pTopTextureFile)
 {
 	D3DXCreateTextureFromFile(m_pd3dDevice, pFrontTextureFile, &m_pTextures[0]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, pBackTextureFile, &m_pTextures[0]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, pLeftTextureFile, &m_pTextures[0]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, pRightTextureFile, &m_pTextures[0]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, pTopTextureFile, &m_pTextures[0]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, pBackTextureFile, &m_pTextures[1]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, pLeftTextureFile, &m_pTextures[2]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, pRightTextureFile, &m_pTextures[3]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, pTopTextureFile, &m_pTextures[4]);
 	return 0;
 }
 
