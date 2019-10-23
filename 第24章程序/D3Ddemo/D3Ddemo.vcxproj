@@ -72,6 +72,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>D:\SoftWare\Microsoft DirectX SDK %28June 2010%29\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\SoftWare\Microsoft DirectX SDK %28June 2010%29\Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -92,7 +94,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -143,6 +145,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CameraClass.h" />
+    <ClInclude Include="D3DUtil.h" />
+    <ClInclude Include="DInput.h" />
+    <ClInclude Include="SkyBoxClass.h" />
+    <ClInclude Include="SnowParticleClass.h" />
+    <ClInclude Include="TerrainClass.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CameraClass.cpp" />
+    <ClCompile Include="DInput.cpp" />
+    <ClCompile Include="SkyBoxClass.cpp" />
+    <ClCompile Include="SnowParticleClass.cpp" />
+    <ClCompile Include="TerrainClass.cpp" />
+    <ClCompile Include="源.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
