@@ -477,7 +477,7 @@ void HelpText_Render(HWND hwnd)
 	int charCount = swprintf_s(g_strFPS, 20, _T("FPS:%0.3f"), Get_FPS());
 	g_pFont->DrawText(NULL, g_strFPS, charCount, &formatRect, DT_TOP | DT_RIGHT, D3DCOLOR_RGBA(0, 239, 136, 255));
 
-	//显示显卡类型名
+	// 显示显卡类型名
 	g_pTextAdapterName->DrawText(NULL, g_strAdapterName, -1, &formatRect,
 		DT_TOP | DT_LEFT, D3DXCOLOR(1.0f, 0.5f, 0.0f, 1.0f));
 
@@ -511,7 +511,7 @@ void HelpText_Render(HWND hwnd)
 // 描述：资源清理函数，在此函数中进行程序退出前资源的清理工作
 void Direct3D_CleanUp()
 {
-	//释放COM接口对象
+	// 释放COM接口对象
 	for (DWORD i = 0; i<g_dwNumMtrls; i++)
 		SAFE_RELEASE(g_pTexture[i]);
 
