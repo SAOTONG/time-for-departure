@@ -4,7 +4,7 @@ SnowParticleClass::SnowParticleClass(LPDIRECT3DDEVICE9 pd3dDevice)
 {
 	m_pd3dDevice = pd3dDevice;
 	m_pVertexBuffer = NULL;
-	m_vSnows.reserve(PARTICLE_NUMBER);
+	m_vSnows.resize(PARTICLE_NUMBER);
 	for (int i = 0; i < 6; i++)
 	{
 		m_pTexture[i] = NULL;
@@ -18,13 +18,13 @@ HRESULT SnowParticleClass::InitSnowParticle()
 	{
 		// x值在[-SNOW_SYSTEM_LENGTH_X,SNOW_SYSTEM_LENGTH_X / 2)范围内取值
 		m_vSnows[i].x = float(rand() % SNOW_SYSTEM_LENGTH_X - SNOW_SYSTEM_LENGTH_X / 2);
-		m_vSnows[i].y = float(rand() % SNOW_SYSTEM_WIDTH_Y - SNOW_SYSTEM_WIDTH_Y / 2);
-		m_vSnows[i].z = float(rand() % SNOW_SYSTEM_HEIGHT_Z);
+		m_vSnows[i].y = float(rand() % SNOW_SYSTEM_WIDTH_Y);
+		m_vSnows[i].z = float(rand() % SNOW_SYSTEM_HEIGHT_Z - SNOW_SYSTEM_HEIGHT_Z / 2);
 
 		m_vSnows[i].RotationX = (rand() % 100) / 50.0f*D3DX_PI;
 		m_vSnows[i].RotationY = (rand() % 100) / 50.0f*D3DX_PI;
 
-		m_vSnows[i].FallSpeed = 300.0f + rand() % 800;
+		m_vSnows[i].FallSpeed = 300.0f + rand() % 500;
 		m_vSnows[i].RotationSpeed = 5.0f + rand() % 10 / 10.0f;
 
 		m_vSnows[i].TextureIndex = rand() % 6;
@@ -36,8 +36,9 @@ HRESULT SnowParticleClass::InitSnowParticle()
 	{
 		{ -30.0f,0.0f,0.0f,0.0f,1.0f },
 	    { -30.0f,60.0f,0.0f,0.0f,0.0f },
-	    { 30.0f,60.0f,0.0f,1.0f,0.0f },
-	    { 30.0f,0.0f,0.0f,1.0f,1.0f }
+	    { 30.0f,0.0f,0.0f,1.0f,1.0f },
+	    { 30.0f,60.0f,0.0f,1.0f,0.0f }
+	    
 	};
 	VOID* pVertex;
 	m_pVertexBuffer->Lock(0, sizeof(vertices), &pVertex, 0);
@@ -60,7 +61,7 @@ HRESULT SnowParticleClass::UpdateSnowParticle(float fElapsedTime)
 	{
 		m_vSnows[i].y -= m_vSnows[i].FallSpeed*fElapsedTime;
 		if (m_vSnows[i].y < 0)
-			m_vSnows[i].y = SNOW_SYSTEM_WIDTH_Y;
+			m_vSnows[i].y = SNOW_SYSTEM_HEIGHT_Z;
 		m_vSnows[i].RotationX += m_vSnows[i].RotationSpeed*fElapsedTime;
 		m_vSnows[i].RotationY += m_vSnows[i].RotationSpeed*fElapsedTime;
 	}
@@ -95,7 +96,7 @@ HRESULT SnowParticleClass::RenderSnowParticle()
 		m_pd3dDevice->SetTexture(0, m_pTexture[m_vSnows[i].TextureIndex]);
 		m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(VERTEX));
 		m_pd3dDevice->SetFVF(D3DFVF_XYZ | D3DFVF_TEX1);
-		m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);
+		m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
 	}
 	m_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, false);
 	m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);

@@ -10,6 +10,7 @@
 #include "CameraClass.h"
 #include "TerrainClass.h"
 #include "SkyBoxClass.h"
+#include "SnowParticleClass.h"
 
 #pragma comment(lib,"winmm.lib")     // 调用PlaySound函数所需库文件
 #pragma comment(lib,"d3d9.lib")
@@ -42,15 +43,15 @@ DInput*                 g_pDirectInput = NULL;   // DirectInput封装类对象
 CameraClass*            g_pCamera = NULL;        // 摄像机封装类对象
 TerrainClass*           g_pTerrain = NULL;       // 地形封装类对象
 SkyBoxClass*            g_pSkyBox = NULL;        // 天空盒子封装类对象
-
+SnowParticleClass*      g_pSnowParticle = NULL;  // 雪花粒子封装类对象
 
 // 描述：全局函数声明,防止“未声明的标识”系列错误
 // 窗口过程函数
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 HRESULT			 Direct3D_Init(HWND hwnd, HINSTANCE hInstance);  // 在这个函数中进行Direct3D的初始化
 HRESULT			 Objects_Init(HWND hwnd);     // 在这个函数中进行要绘制的物体的资源初始化
-VOID             Direct3D_Update(HWND hwnd);  // 在这个函数中进行画面更新操作
-VOID			 Direct3D_Render(HWND hwnd);  // 在这个函数中进行Direct3D渲染代码的书写
+VOID             Direct3D_Update(HWND hwnd,FLOAT fTimeDelta);  // 在这个函数中进行画面更新操作
+VOID			 Direct3D_Render(HWND hwnd,FLOAT fTimeDelta);  // 在这个函数中进行Direct3D渲染代码的书写
 VOID			 Direct3D_CleanUp();		  // 在这个函数中清理COM资源以及其他资源
 float		     Get_FPS();					  // 计算帧数的函数
 void			 HelpText_Render(HWND hwnd);  // 绘制帮助信息的函数
@@ -119,6 +120,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	MSG msg = { 0 };                // 初始化msg
 	while (msg.message != WM_QUIT)  // 使用while循环
 	{
+		static FLOAT fLastTime = (float)::timeGetTime();
+		static FLOAT fCurrTime = (float)::timeGetTime();
+		static FLOAT fTimeDelta = 0.0f;
+		fCurrTime = (float)::timeGetTime();
+		fTimeDelta = (fCurrTime - fLastTime) / 1000.0f;
+		fLastTime = fCurrTime;
+
 		// 查看应用程序消息队列，有消息时将队列中的消息派发出去。
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
@@ -127,8 +135,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		}
 		else
 		{
-			Direct3D_Update(hwnd);   // 进行画面更新
-			Direct3D_Render(hwnd);   // 进行渲染
+			Direct3D_Update(hwnd, fTimeDelta);   // 进行画面更新
+			Direct3D_Render(hwnd, fTimeDelta);   // 进行渲染
 		}
 	}
 	//【6】窗口类的注销
@@ -143,7 +151,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)			   // switch语句开始
 	{
 	case WM_PAINT:				   // 若是客户区重绘消息
-		Direct3D_Render(hwnd);     // 调用Direct3D渲染函数
+		Direct3D_Render(hwnd, 0.0f);     // 调用Direct3D渲染函数
 		ValidateRect(hwnd, NULL);  // 更新客户区的显示
 		break;					   // 跳出该switch语句
 
@@ -287,6 +295,9 @@ HRESULT Objects_Init(HWND hwnd)
 		L"GameMedia\\rightsnow1.jpg", L"GameMedia\\topsnow1.jpg");
 	g_pSkyBox->InitSkyBox(120000);
 
+	// 创建粒子系统
+	g_pSnowParticle = new SnowParticleClass(g_pd3dDevice);
+	g_pSnowParticle->InitSnowParticle();
 	// 创建并初始化虚拟摄像机
 	g_pCamera = new CameraClass(g_pd3dDevice);
 	g_pCamera->SetCameraPosition(&D3DXVECTOR3(0.0f, 20000.0f, -20000.0f));
@@ -322,7 +333,7 @@ HRESULT Objects_Init(HWND hwnd)
 	return S_OK;
 }
 
-VOID Direct3D_Update(HWND hwnd)
+VOID Direct3D_Update(HWND hwnd, FLOAT fTimeDelta)
 {
 	g_pDirectInput->GetInput();
 
@@ -384,7 +395,7 @@ VOID Direct3D_Update(HWND hwnd)
 }
 
 // 描述：使用Direct3D进行渲染
-void Direct3D_Render(HWND hwnd)
+void Direct3D_Render(HWND hwnd, FLOAT fTimeDelta)
 {
 	//【Direct3D渲染五步曲之一】：清屏操作
 	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL,
@@ -418,6 +429,10 @@ void Direct3D_Render(HWND hwnd)
 	D3DXMatrixRotationY(&matRotSky, -0.000005f*timeGetTime());
 	matSky = matTransSky * matRotSky;
 	g_pSkyBox->RenderSkyBox(&matSky, false);
+
+	// 绘制雪花粒子
+	g_pSnowParticle->UpdateSnowParticle(fTimeDelta);
+	g_pSnowParticle->RenderSnowParticle();
 
 	// 绘制柱子
 	D3DXMATRIX TransMatrix, RotMatrix, FinalMatrix;
