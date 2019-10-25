@@ -45,12 +45,12 @@ HRESULT SnowParticleClass::InitSnowParticle()
 	memcpy(pVertex, vertices, sizeof(vertices));
 	m_pVertexBuffer->Unlock();
 
-	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow1.jpg", &m_pTexture[1]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow2.jpg", &m_pTexture[2]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow3.jpg", &m_pTexture[3]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow4.jpg", &m_pTexture[4]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow5.jpg", &m_pTexture[5]);
-	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow6.jpg", &m_pTexture[6]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow1.jpg", &m_pTexture[0]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow2.jpg", &m_pTexture[1]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow3.jpg", &m_pTexture[2]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow4.jpg", &m_pTexture[3]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow5.jpg", &m_pTexture[4]);
+	D3DXCreateTextureFromFile(m_pd3dDevice, L"GameMedia\\snow6.jpg", &m_pTexture[5]);
 
 	return S_OK;
 }
@@ -90,7 +90,7 @@ HRESULT SnowParticleClass::RenderSnowParticle()
 		D3DXMatrixTranslation(&matTrans, m_vSnows[i].x, m_vSnows[i].y, m_vSnows[i].z);
 		D3DXMatrixRotationX(&matRX, m_vSnows[i].RotationX);
 		D3DXMatrixRotationY(&matRY, m_vSnows[i].RotationY);
-		matWorld = matTrans * matRX*matRY;
+		matWorld = matRY* matRX*matTrans;
 		m_pd3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
 
 		m_pd3dDevice->SetTexture(0, m_pTexture[m_vSnows[i].TextureIndex]);
