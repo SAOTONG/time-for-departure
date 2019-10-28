@@ -1,10 +1,8 @@
 #include "SnowParticleClass.h"
-
 SnowParticleClass::SnowParticleClass(LPDIRECT3DDEVICE9 pd3dDevice)
 {
 	m_pd3dDevice = pd3dDevice;
 	m_pVertexBuffer = NULL;
-	m_vSnows.resize(PARTICLE_NUMBER);
 	for (int i = 0; i < 6; i++)
 	{
 		m_pTexture[i] = NULL;
@@ -13,13 +11,15 @@ SnowParticleClass::SnowParticleClass(LPDIRECT3DDEVICE9 pd3dDevice)
 
 HRESULT SnowParticleClass::InitSnowParticle()
 {
-	srand((unsigned)timeGetTime());
+	srand(GetTickCount());
 	for (int i = 0; i < PARTICLE_NUMBER; i++)
 	{
-		// x值在[-SNOW_SYSTEM_LENGTH_X,SNOW_SYSTEM_LENGTH_X / 2)范围内取值
-		m_vSnows[i].x = float(rand() % SNOW_SYSTEM_LENGTH_X - SNOW_SYSTEM_LENGTH_X / 2);
-		m_vSnows[i].y = float(rand() % SNOW_SYSTEM_WIDTH_Y);
-		m_vSnows[i].z = float(rand() % SNOW_SYSTEM_HEIGHT_Z - SNOW_SYSTEM_HEIGHT_Z / 2);
+		// x值在[-SNOW_SYSTEM_LENGTH_X/2,SNOW_SYSTEM_LENGTH_X / 2)范围内取值
+		m_vSnows[i].x = float(rand() % SNOW_SYSTEM_LENGTH_X - (SNOW_SYSTEM_LENGTH_X / 2));
+		// y值在[0,SNOW_SYSTEM_HEIGHT_Y)范围内取值
+		m_vSnows[i].y = float(rand() % SNOW_SYSTEM_HEIGHT_Y);
+		// z值在[-SNOW_SYSTEM_WIDTH_Z/2,SNOW_SYSTEM_WIDTH_Z / 2)范围内取值
+		m_vSnows[i].z = float(rand() % SNOW_SYSTEM_WIDTH_Z - (SNOW_SYSTEM_WIDTH_Z / 2));
 
 		m_vSnows[i].RotationX = (rand() % 100) / 50.0f*D3DX_PI;
 		m_vSnows[i].RotationY = (rand() % 100) / 50.0f*D3DX_PI;
@@ -41,7 +41,7 @@ HRESULT SnowParticleClass::InitSnowParticle()
 	    
 	};
 	VOID* pVertex;
-	m_pVertexBuffer->Lock(0, sizeof(vertices), &pVertex, 0);
+	m_pVertexBuffer->Lock(0, sizeof(vertices), (void**)&pVertex, 0);
 	memcpy(pVertex, vertices, sizeof(vertices));
 	m_pVertexBuffer->Unlock();
 
@@ -61,7 +61,7 @@ HRESULT SnowParticleClass::UpdateSnowParticle(float fElapsedTime)
 	{
 		m_vSnows[i].y -= m_vSnows[i].FallSpeed*fElapsedTime;
 		if (m_vSnows[i].y < 0)
-			m_vSnows[i].y = SNOW_SYSTEM_HEIGHT_Z;
+			m_vSnows[i].y = SNOW_SYSTEM_HEIGHT_Y;
 		m_vSnows[i].RotationX += m_vSnows[i].RotationSpeed*fElapsedTime;
 		m_vSnows[i].RotationY += m_vSnows[i].RotationSpeed*fElapsedTime;
 	}
@@ -79,17 +79,17 @@ HRESULT SnowParticleClass::RenderSnowParticle()
 	m_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 
 	m_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-	m_pd3dDevice->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+	m_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
 	m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
 
 	m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
 	for (int i = 0; i < PARTICLE_NUMBER; i++)
 	{
-		D3DXMATRIX matTrans, matRX, matRY, matWorld;
-		D3DXMatrixTranslation(&matTrans, m_vSnows[i].x, m_vSnows[i].y, m_vSnows[i].z);
+		static D3DXMATRIX matTrans, matRX, matRY, matWorld;
 		D3DXMatrixRotationX(&matRX, m_vSnows[i].RotationX);
 		D3DXMatrixRotationY(&matRY, m_vSnows[i].RotationY);
+		D3DXMatrixTranslation(&matTrans, m_vSnows[i].x, m_vSnows[i].y, m_vSnows[i].z);
 		matWorld = matRY* matRX*matTrans;
 		m_pd3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
 

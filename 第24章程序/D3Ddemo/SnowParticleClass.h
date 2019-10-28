@@ -8,15 +8,16 @@
 #include "D3DUtil.h"
 
 #define PARTICLE_NUMBER 15000
-#define SNOW_SYSTEM_LENGTH_X 150000
-#define SNOW_SYSTEM_WIDTH_Y 150000
-#define SNOW_SYSTEM_HEIGHT_Z 150000
+#define SNOW_SYSTEM_LENGTH_X 60000
+#define SNOW_SYSTEM_WIDTH_Z 60000
+#define SNOW_SYSTEM_HEIGHT_Y 60000
+
 
 // 雪花粒子的顶点结构
 struct VERTEX
 {
-	int _x, _y, _z;
-	int _u, _v;
+	float _x, _y, _z;
+	float _u, _v;
 };
 #define D3DFVF_VERTEX (D3DFVF_XYZ|D3DFVF_TEX1);
 
@@ -45,7 +46,8 @@ private:
 	LPDIRECT3DDEVICE9 m_pd3dDevice;
 	LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer;
 	LPDIRECT3DTEXTURE9 m_pTexture[6];
-	std::vector<SNOWPARTICLE> m_vSnows;
+	/*std::vector<SNOWPARTICLE> m_vSnows;*/
+	SNOWPARTICLE m_vSnows[PARTICLE_NUMBER];
 };
 
 #endif // !SNOWPARTICLECLASS_H

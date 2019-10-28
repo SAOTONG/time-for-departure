@@ -338,12 +338,12 @@ VOID Direct3D_Update(HWND hwnd, FLOAT fTimeDelta)
 	g_pDirectInput->GetInput();
 
 	// 沿摄像机各分量平移视角
-	if (g_pDirectInput->IsKeyButtonDown(DIK_W))g_pCamera->MoveAlongUpVec(10.0f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_A))g_pCamera->MoveAlongRightVec(-10.0f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_S))g_pCamera->MoveAlongUpVec(-10.0f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_D))g_pCamera->MoveAlongRightVec(10.0f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_R))g_pCamera->MoveAlongLookVec(10.0f);
-	if (g_pDirectInput->IsKeyButtonDown(DIK_F))g_pCamera->MoveAlongLookVec(-10.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_W))g_pCamera->MoveAlongUpVec(100.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_A))g_pCamera->MoveAlongRightVec(-100.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_S))g_pCamera->MoveAlongUpVec(-100.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_D))g_pCamera->MoveAlongRightVec(100.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_R))g_pCamera->MoveAlongLookVec(100.0f);
+	if (g_pDirectInput->IsKeyButtonDown(DIK_F))g_pCamera->MoveAlongLookVec(-100.0f);
 
 	// 沿摄像机各分量旋转视角
 	if (g_pDirectInput->IsKeyButtonDown(DIK_UP))g_pCamera->RotationRightVec(-0.003f);
