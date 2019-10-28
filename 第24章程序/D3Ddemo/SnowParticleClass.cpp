@@ -15,11 +15,11 @@ HRESULT SnowParticleClass::InitSnowParticle()
 	for (int i = 0; i < PARTICLE_NUMBER; i++)
 	{
 		// x值在[-SNOW_SYSTEM_LENGTH_X/2,SNOW_SYSTEM_LENGTH_X / 2)范围内取值
-		m_vSnows[i].x = float(rand() % SNOW_SYSTEM_LENGTH_X - (SNOW_SYSTEM_LENGTH_X / 2));
+		m_vSnows[i].x = float((rand() % SNOW_SYSTEM_LENGTH_X) - (SNOW_SYSTEM_LENGTH_X / 2));
 		// y值在[0,SNOW_SYSTEM_HEIGHT_Y)范围内取值
 		m_vSnows[i].y = float(rand() % SNOW_SYSTEM_HEIGHT_Y);
 		// z值在[-SNOW_SYSTEM_WIDTH_Z/2,SNOW_SYSTEM_WIDTH_Z / 2)范围内取值
-		m_vSnows[i].z = float(rand() % SNOW_SYSTEM_WIDTH_Z - (SNOW_SYSTEM_WIDTH_Z / 2));
+		m_vSnows[i].z = float((rand() % SNOW_SYSTEM_WIDTH_Z) - (SNOW_SYSTEM_WIDTH_Z / 2));
 
 		m_vSnows[i].RotationX = (rand() % 100) / 50.0f*D3DX_PI;
 		m_vSnows[i].RotationY = (rand() % 100) / 50.0f*D3DX_PI;

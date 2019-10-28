@@ -7,17 +7,18 @@
 #include <vector>
 #include "D3DUtil.h"
 
-#define PARTICLE_NUMBER 15000
-#define SNOW_SYSTEM_LENGTH_X 60000
-#define SNOW_SYSTEM_WIDTH_Z 60000
-#define SNOW_SYSTEM_HEIGHT_Y 60000
+#define PARTICLE_NUMBER 1500
+#define SNOW_SYSTEM_LENGTH_X 30000
+#define SNOW_SYSTEM_WIDTH_Z 30000
+#define SNOW_SYSTEM_HEIGHT_Y 30000
 
 
 // 雪花粒子的顶点结构
 struct VERTEX
 {
-	float _x, _y, _z;
-	float _u, _v;
+
+	float x, y, z;
+	float u, v;
 };
 #define D3DFVF_VERTEX (D3DFVF_XYZ|D3DFVF_TEX1);
 
